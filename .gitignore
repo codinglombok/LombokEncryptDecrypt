@@ -1,0 +1,106 @@
+# Node.js
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.npm/
+
+# Rust
+target/
+Cargo.lock.bak
+*.rlib
+*.rmeta
+*.pdb
+
+# WASM
+pkg/
+*.wasm
+*.wasm.gz
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.venv/
+venv/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# PHP
+vendor/
+composer.lock
+
+# Go
+ports/go/vendor/
+
+# Java / Kotlin
+*.class
+*.jar
+*.war
+.gradle/
+build/
+out/
+.m2/
+
+# .NET
+bin/
+obj/
+*.nupkg
+*.snupkg
+*.user
+
+# Swift
+.build/
+*.xcodeproj/
+*.xcworkspace/
+Packages/
+
+# C / C++
+*.o
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+Makefile.in
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.p12
+*.pfx
+*.key
+*.crt
+
+# Benchmarks output
+bench_output.txt
+criterion/
+
+# Fuzz
+fuzz/artifacts/
+fuzz/corpus/
+
+# SQL extension build
+ports/sql/*.o
+ports/sql/*.so
+ports/sql/results/
+
+/map
+/docs/*architecture*.*
+/docs/*masterplan*.*

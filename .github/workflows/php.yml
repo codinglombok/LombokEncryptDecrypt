@@ -1,0 +1,31 @@
+name: CI — PHP
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test — PHP ${{ matrix.php }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '${{ matrix.php }}'
+          extensions: openssl, mbstring
+          tools: composer, phpunit, phpstan, phpcs
+      - run: composer install --no-interaction --prefer-dist
+      - run: vendor/bin/phpunit ports/php/tests/
+      - run: vendor/bin/phpstan analyse ports/php/src --level=9
+        if: matrix.php == '8.3' && matrix.os == 'ubuntu-latest'

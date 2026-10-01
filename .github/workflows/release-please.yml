@@ -1,0 +1,37 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: node
+          package-name: lombokencryptdecrypt
+          changelog-path: CHANGELOG.md
+          bump-patch-for-minor-pre-major: true
+          pull-request-title-pattern: 'chore: release ${version}'
+          extra-files: |
+            Cargo.toml
+            pyproject.toml
+            pom.xml
+            ports/php/src/LombokEncryptDecrypt.php
+            ports/go/go.mod
+
+      - name: Tag created
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          echo "Released version: ${{ steps.release.outputs.tag_name }}"
+          echo "Major: ${{ steps.release.outputs.major }}"
+          echo "Minor: ${{ steps.release.outputs.minor }}"
+          echo "Patch: ${{ steps.release.outputs.patch }}"

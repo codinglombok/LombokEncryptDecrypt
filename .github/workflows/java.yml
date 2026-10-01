@@ -1,0 +1,27 @@
+name: CI — Java
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test — Java ${{ matrix.java }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: ['17', '21']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '${{ matrix.java }}'
+          distribution: temurin
+          cache: maven
+      - run: mvn -B test --file pom.xml
+      - run: mvn -B verify --file pom.xml

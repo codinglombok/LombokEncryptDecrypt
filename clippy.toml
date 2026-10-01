@@ -1,0 +1,23 @@
+# LombokEncryptDecrypt — Clippy configuration
+# Reference: https://rust-lang.github.io/rust-clippy/stable/
+
+# Minimum supported Rust version — affects lint suggestions
+msrv = "1.75"
+
+# Cognitive complexity threshold (crypto code can be legitimately complex)
+cognitive-complexity-threshold = 30
+
+# Disallow inherent_to_string_shadow_display in crypto types
+avoid-breaking-exported-api = true
+
+# Maximum length of function parameters (crypto APIs often need many params)
+too-many-arguments-threshold = 10
+
+# Allow single-char variable names in crypto (a, b, x, y are standard math notation)
+single-char-binding-names-threshold = 6
+
+# Stack size for recursive structures
+stack-usage-threshold = 16384
+
+# Vec capacity checks
+vec-box-size-threshold = 4096

@@ -1,0 +1,25 @@
+name: CI — .NET
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test — .NET ${{ matrix.dotnet }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        dotnet: ['8.0', '9.0']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '${{ matrix.dotnet }}' }
+      - run: dotnet build LombokEncryptDecrypt.csproj --configuration Release
+      - run: dotnet test ports/dotnet/LombokEncryptDecrypt.Tests.csproj --verbosity normal

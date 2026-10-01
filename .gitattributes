@@ -1,0 +1,72 @@
+# Normalise line endings
+* text=auto eol=lf
+
+# TypeScript / JavaScript
+*.ts text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+
+# Rust
+*.rs text eol=lf
+*.toml text eol=lf
+
+# Python
+*.py text eol=lf
+
+# PHP
+*.php text eol=lf
+
+# Go
+*.go text eol=lf
+
+# Java / Kotlin
+*.java text eol=lf
+*.kt text eol=lf
+*.kts text eol=lf
+
+# C / C++
+*.c text eol=lf
+*.h text eol=lf
+*.cpp text eol=lf
+*.hpp text eol=lf
+
+# Swift
+*.swift text eol=lf
+
+# Perl
+*.pm text eol=lf
+*.pl text eol=lf
+
+# SQL
+*.sql text eol=lf
+
+# Markdown / Docs
+*.md text eol=lf
+*.txt text eol=lf
+
+# Config
+*.yml text eol=lf
+*.yaml text eol=lf
+*.xml text eol=lf
+*.gradle text eol=lf
+Makefile text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+scripts/*.mjs text eol=lf
+
+# Binary files — no diff, no merge
+*.wasm binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.tar.gz binary
+*.gz binary
+*.pfx binary
+*.p12 binary
+*.der binary

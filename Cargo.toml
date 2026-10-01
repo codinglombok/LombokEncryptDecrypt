@@ -1,0 +1,136 @@
+[package]
+name = "lombokencryptdecrypt"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["codinglombok <codinglombok@gmail.com>"]
+description = "Universal encrypt/decrypt library — AES/ChaCha20/Kyber/Dilithium/SPHINCS+/SM2/SM3/SM4/ZUC/SNOW3G/HSM/TPM — post-quantum ready"
+license = "Apache-2.0"
+repository = "https://github.com/codinglombok/LombokEncryptDecrypt"
+homepage = "https://github.com/codinglombok/LombokEncryptDecrypt"
+documentation = "https://docs.rs/lombokencryptdecrypt"
+readme = "README.md"
+keywords = ["encrypt", "decrypt", "cryptography", "post-quantum", "aes"]
+categories = ["cryptography", "no-std", "wasm"]
+exclude = ["tests/", "benches/", "docs/", ".github/", "ports/"]
+
+[lib]
+name = "lombokencryptdecrypt"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["std", "aes-ni", "sha-ni"]
+std = []
+no_std = []
+
+# SIMD acceleration
+aes-ni = []
+sha-ni = []
+avx2 = []
+avx512 = []
+neon = []
+wasm-simd = []
+
+# Algorithm groups
+symmetric = []
+asymmetric = []
+post_quantum = []
+hash = []
+mac = []
+kdf = []
+fpe = []
+xts = []
+telecom = []
+hpke = []
+envelope = []
+keystore = []
+streaming = []
+hardware_hsm = []
+hardware_tpm = []
+hardware_sgx = []
+
+# Bindings
+napi = ["napi-rs"]
+wasm = ["wasm-bindgen", "js-sys", "web-sys"]
+python = ["pyo3"]
+c_bindings = []
+
+# FIPS mode: disables legacy algorithms
+fips = []
+
+# Enable legacy (disabled by default)
+legacy = []
+
+# Full feature set
+full = [
+  "std", "aes-ni", "sha-ni", "avx2",
+  "symmetric", "asymmetric", "post_quantum",
+  "hash", "mac", "kdf", "fpe", "xts", "telecom",
+  "hpke", "envelope", "keystore", "streaming",
+]
+
+[dependencies]
+# Lombok Ecosystem math primitives (non-critical path)
+lombokalgoritma = { version = "0.1.0", optional = true, features = ["math", "hash", "ntt"] }
+# LombokVector (used for encrypted vector embedding in LombokRAGFrameworks integration)
+lombokvector = { version = "0.1.0", optional = true }
+
+# NAPI-RS for Node.js bindings (optional)
+napi-rs = { version = "2.16", optional = true, features = ["napi4"] }
+napi-derive = { version = "2.16", optional = true }
+
+# WASM bindings (optional)
+wasm-bindgen = { version = "0.2", optional = true }
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", optional = true, features = ["Crypto", "SubtleCrypto"] }
+
+# Python bindings (optional)
+pyo3 = { version = "0.21", optional = true, features = ["extension-module"] }
+
+# Entropy / RNG
+getrandom = { version = "0.2", features = ["js"] }
+rand_core = { version = "0.6", default-features = false }
+
+# Constant-time utilities
+subtle = { version = "2.6", default-features = false }
+zeroize = { version = "1.8", default-features = false, features = ["zeroize_derive"] }
+
+# Big-integer for RSA
+num-bigint = { version = "0.4", optional = true }
+num-traits = { version = "0.2", default-features = false }
+
+[dev-dependencies]
+hex = "0.4"
+serde_json = "1"
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+
+[build-dependencies]
+napi-build = { version = "2", optional = true }
+
+[[bench]]
+name = "bench_aes_gcm"
+harness = false
+
+[[bench]]
+name = "bench_kyber"
+harness = false
+
+[[bench]]
+name = "bench_ed25519"
+harness = false
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 1
+
+[package.metadata.docs.rs]
+features = ["full"]
+rustdoc-args = ["--cfg", "docsrs"]
+targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown", "aarch64-unknown-linux-gnu"]

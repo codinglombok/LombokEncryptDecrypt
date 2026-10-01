@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>LombokEncryptDecrypt</AssemblyName>
+    <RootNamespace>CodingLombok.LombokEncryptDecrypt</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>12</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Optimize>true</Optimize>
+    <Deterministic>true</Deterministic>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>CodingLombok.LombokEncryptDecrypt</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>codinglombok</Authors>
+    <Company>CodingLombok</Company>
+    <Product>LombokEncryptDecrypt</Product>
+    <Description>Universal encrypt/decrypt library — AES/ChaCha20/Kyber/Dilithium/SPHINCS+/SM2/SM3/SM4/ZUC/SNOW3G — post-quantum ready, Apache 2.0</Description>
+    <PackageTags>encrypt;decrypt;cryptography;aes;chacha20;post-quantum;kyber;dilithium;sphincs;ml-kem;ml-dsa;ecdh;ecdsa;ed25519;rsa;hkdf;argon2;sm2;sm3;sm4;lombok</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/codinglombok/LombokEncryptDecrypt</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/codinglombok/LombokEncryptDecrypt</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>See CHANGELOG.md at https://github.com/codinglombok/LombokEncryptDecrypt/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="CHANGELOG.md" Pack="true" PackagePath="\" />
+    <None Include="LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Zero external crypto deps for .NET — uses System.Security.Cryptography only -->
+    <!-- No third-party NuGet dependencies -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

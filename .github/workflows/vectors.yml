@@ -1,0 +1,109 @@
+name: Cross-Language Test Vectors
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/vectors/**'
+      - 'src/**'
+      - 'ports/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-vectors:
+    name: Generate reference vectors (TypeScript)
+    runs-on: ubuntu-latest
+    outputs:
+      vectors_sha: ${{ steps.hash.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - run: npm ci
+      - run: node scripts/generate-vectors.mjs
+      - id: hash
+        run: echo "sha=$(sha256sum tests/vectors/lombokencryptdecrypt-vectors-v1.json | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-vectors
+          path: tests/vectors/lombokencryptdecrypt-vectors-v1.json
+
+  verify-rust:
+    name: Verify vectors — Rust
+    needs: generate-vectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        with: { name: test-vectors, path: tests/vectors/ }
+      - run: cargo test --features full -- cross_language_vectors --nocapture
+
+  verify-python:
+    name: Verify vectors — Python
+    needs: generate-vectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        with: { name: test-vectors, path: tests/vectors/ }
+      - run: pip install maturin pytest
+      - run: maturin develop --features python
+      - run: pytest ports/python/tests/test_vectors.py -v
+
+  verify-go:
+    name: Verify vectors — Go
+    needs: generate-vectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.23' }
+      - uses: actions/download-artifact@v4
+        with: { name: test-vectors, path: tests/vectors/ }
+      - run: go test ./... -run TestCrossLanguageVectors -v
+        working-directory: ports/go
+
+  verify-php:
+    name: Verify vectors — PHP
+    needs: generate-vectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.3', extensions: openssl, tools: composer, phpunit }
+      - uses: actions/download-artifact@v4
+        with: { name: test-vectors, path: tests/vectors/ }
+      - run: composer install --no-interaction
+      - run: vendor/bin/phpunit ports/php/tests/VectorTest.php
+
+  verify-java:
+    name: Verify vectors — Java
+    needs: generate-vectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '21', distribution: temurin, cache: maven }
+      - uses: actions/download-artifact@v4
+        with: { name: test-vectors, path: tests/vectors/ }
+      - run: mvn -B test -Dtest=CrossLanguageVectorTest
+
+  summary:
+    name: Vector verification summary
+    needs: [verify-rust, verify-python, verify-go, verify-php, verify-java]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All vectors verified
+        run: |
+          echo "✅ Cross-language test vector verification PASSED"
+          echo "Vectors SHA: ${{ needs.generate-vectors.outputs.vectors_sha }}"
+          echo "Languages verified: TypeScript (reference), Rust, Python, Go, PHP, Java"

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "lombokencryptdecrypt",
+  "version": "0.1.0",
+  "description": "Universal encrypt/decrypt library — AES/ChaCha20/Kyber/Dilithium/SPHINCS+/SM2/SM3/SM4 — post-quantum ready, Apache 2.0",
+  "homepage": "https://github.com/codinglombok/LombokEncryptDecrypt",
+  "license": "Apache-2.0",
+  "supports": "!uwp",
+  "features": {
+    "symmetric": {
+      "description": "AES-GCM/CCM/EAX/XTS, ChaCha20-Poly1305, SM4"
+    },
+    "asymmetric": {
+      "description": "RSA-OAEP/PSS, ECDH, ECDSA, Ed25519, SM2, ECIES"
+    },
+    "post-quantum": {
+      "description": "ML-KEM (Kyber), ML-DSA (Dilithium), SPHINCS+, FALCON"
+    },
+    "hash": {
+      "description": "SHA-2/3, BLAKE2/3, SM3"
+    },
+    "kdf": {
+      "description": "PBKDF2, scrypt, Argon2id, HKDF"
+    },
+    "all": {
+      "description": "All algorithm groups",
+      "dependencies": ["symmetric", "asymmetric", "post-quantum", "hash", "kdf"]
+    }
+  },
+  "dependencies": []
+}

@@ -1,0 +1,59 @@
+name: Publish — PGXN (PostgreSQL)
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: read
+
+jobs:
+  publish-pgxn:
+    name: Build + publish PostgreSQL extension to PGXN
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL dev headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-server-dev-16 libssl-dev
+
+      - name: Build extension
+        run: |
+          cd ports/sql
+          make PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config
+
+      - name: Test extension against local PG
+        run: |
+          cd ports/sql
+          make installcheck PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config PGPORT=5432
+        env:
+          PGPASSWORD: postgres
+
+      - name: Install pgxnclient
+        run: pip install pgxnclient
+
+      - name: Package for PGXN
+        run: |
+          cd ports/sql
+          pgxn bundle
+
+      - name: Publish to PGXN
+        run: |
+          cd ports/sql
+          pgxn release lombokencryptdecrypt-*.zip \
+            --username ${{ secrets.PGXN_USERNAME }} \
+            --password ${{ secrets.PGXN_PASSWORD }}

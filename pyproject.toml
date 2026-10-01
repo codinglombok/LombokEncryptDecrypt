@@ -1,0 +1,53 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "lombokencryptdecrypt"
+version = "0.1.0"
+description = "Universal encrypt/decrypt library — AES/ChaCha20/Kyber/Dilithium/SPHINCS+/SM2/SM3/SM4/ZUC/SNOW3G/HSM/TPM — post-quantum ready"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "codinglombok", email = "codinglombok@gmail.com" }]
+requires-python = ">=3.9"
+keywords = [
+  "encrypt", "decrypt", "cryptography", "aes", "chacha20",
+  "post-quantum", "kyber", "dilithium", "sphincs", "ml-kem", "ml-dsa",
+  "ecdh", "ecdsa", "ed25519", "rsa", "hkdf", "argon2",
+  "sm2", "sm3", "sm4", "zuc", "snow3g", "fips", "nist"
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Rust",
+  "Topic :: Security :: Cryptography",
+  "Topic :: Software Development :: Libraries",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/codinglombok/LombokEncryptDecrypt"
+Repository = "https://github.com/codinglombok/LombokEncryptDecrypt"
+Documentation = "https://github.com/codinglombok/LombokEncryptDecrypt/blob/main/docs/API.md"
+Changelog = "https://github.com/codinglombok/LombokEncryptDecrypt/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/codinglombok/LombokEncryptDecrypt/issues"
+
+[tool.maturin]
+features = ["python"]
+python-source = "ports/python"
+module-name = "lombokencryptdecrypt._core"
+manifest-path = "Cargo.toml"
+
+[tool.pytest.ini_options]
+testpaths = ["ports/python/tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"

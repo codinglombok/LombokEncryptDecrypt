@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "outDir": "./dist/esm",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationDir": "./dist/types",
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "useUnknownInCatchVariables": true,
+    "paths": {
+      "@lombok/ecc":       ["./node_modules/lombokecc/dist/esm/index.js"],
+      "@lombok/algoritma": ["./node_modules/lombokalgoritma/dist/esm/index.js"],
+      "@lombok/algoritma/math": ["./node_modules/lombokalgoritma/dist/esm/math/index.js"],
+      "@lombok/vector":    ["./node_modules/lombokvector/dist/esm/index.js"],
+      "@lombok/qrcode":   ["./node_modules/lombokqrcode/dist/esm/index.js"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tests", "benches", "ports", "src-rust"]
+}

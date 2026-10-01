@@ -1,0 +1,9 @@
+# lombokencryptdecrypt_ext extension
+comment = 'LombokEncryptDecrypt — AES-256-GCM, HMAC-SHA256, Argon2id UDF for PostgreSQL'
+default_version = '0.1.0'
+module_pathname = '$libdir/lombokencryptdecrypt_ext'
+relocatable = false
+schema = 'lombok_crypto'
+superuser = false
+trusted = true
+requires = ''

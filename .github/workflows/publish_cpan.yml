@@ -1,0 +1,27 @@
+name: Publish — CPAN (Perl)
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: read
+
+jobs:
+  publish-cpan:
+    name: Publish to CPAN via PAUSE
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.3' }
+      - uses: perl-actions/install-with-cpanm@stable
+        with: { install: 'CPAN::Uploader' }
+      - run: |
+          cd ports/perl
+          perl Makefile.PL
+          make dist
+      - run: |
+          cpan-upload -u ${{ secrets.PAUSE_USERNAME }} \
+                      -p ${{ secrets.PAUSE_PASSWORD }} \
+                      ports/perl/LombokEncryptDecrypt-*.tar.gz

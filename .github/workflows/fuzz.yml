@@ -1,0 +1,76 @@
+name: Fuzz — LombokFuzzer nightly
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # nightly 00:00 UTC
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: 'Fuzz duration per target (seconds)'
+        required: false
+        default: '300'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - fuzz_aes_gcm
+          - fuzz_rsa_oaep
+          - fuzz_pem_parser
+          - fuzz_x509
+          - fuzz_kyber
+          - fuzz_kdf
+          - fuzz_stream
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with: { components: rust-src }
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+
+      - name: Run fuzzer — ${{ matrix.target }}
+        run: |
+          DURATION=${{ github.event.inputs.duration || '300' }}
+          cargo +nightly fuzz run ${{ matrix.target }} -- \
+            -max_total_time=$DURATION \
+            -jobs=4 \
+            -workers=4
+
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crash-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}/
+
+      - name: File issue on crash
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🐛 Fuzz crash: ${{ matrix.target }}`,
+              body: `Fuzzer found a crash in \`${{ matrix.target }}\`. See workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['bug', 'fuzz', 'security']
+            });
+
+  dudect:
+    name: Side-channel statistical test (dudect)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --features full -- dudect --nocapture

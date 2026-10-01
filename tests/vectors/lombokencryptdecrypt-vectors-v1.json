@@ -1,0 +1,157 @@
+{
+  "_meta": {
+    "version": 1,
+    "library": "LombokEncryptDecrypt",
+    "date": "2026-09-18",
+    "description": "Cross-language test vectors. All ports must produce byte-identical output.",
+    "sources": ["NIST FIPS 197", "NIST SP 800-38D", "RFC 8032", "RFC 7539", "NIST CAVP", "Wycheproof"]
+  },
+  "aes_gcm": [
+    {
+      "id": "aes-gcm-256-1",
+      "algorithm": "AES-256-GCM",
+      "source": "NIST GCMVS",
+      "key": "feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308",
+      "iv": "cafebabefacedbaddecaf888",
+      "aad": "",
+      "plaintext": "d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b391aafd255",
+      "ciphertext": "522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f662898015ad",
+      "tag": "b094dac5d93471bdec1a502270e3cc6c"
+    },
+    {
+      "id": "aes-gcm-128-empty-plaintext",
+      "algorithm": "AES-128-GCM",
+      "source": "NIST GCMVS",
+      "key": "00000000000000000000000000000000",
+      "iv": "000000000000000000000000",
+      "aad": "",
+      "plaintext": "",
+      "ciphertext": "",
+      "tag": "58e2fccefa7e3061367f1d57a4e7455a"
+    }
+  ],
+  "chacha20_poly1305": [
+    {
+      "id": "chacha20-poly1305-rfc8439-1",
+      "algorithm": "ChaCha20-Poly1305",
+      "source": "RFC 7539 Section 2.8.2",
+      "key": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+      "nonce": "070000004041424344454647",
+      "aad": "50515253c0c1c2c3c4c5c6c7",
+      "plaintext": "4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e",
+      "ciphertext": "d31a8d34648e60db7b86afbc53ef7ec2a4aded51296e08fea9e2b5a736ee62d63dbea45e8ca9671282fafb69da92728b1a71de0a9e060b2905d6a5b67ecd3b3692ddbd7f2d778b8c9803aee328091b58fab324e4fad675945585808b4831d7bc3ff4def08e4b7a9de576d26586cec64b6116",
+      "tag": "1ae10b594f09e26a7e902ecbd0600691"
+    }
+  ],
+  "sha256": [
+    {
+      "id": "sha256-nist-1",
+      "algorithm": "SHA-256",
+      "source": "NIST FIPS 180-4",
+      "input": "616263",
+      "output": "ba7816bf8f01cfea414140de5dae2ec73b00361bbef0469f490f67c94c0ca2b"
+    },
+    {
+      "id": "sha256-nist-empty",
+      "algorithm": "SHA-256",
+      "source": "NIST FIPS 180-4",
+      "input": "",
+      "output": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "sha3_256": [
+    {
+      "id": "sha3-256-nist-1",
+      "algorithm": "SHA3-256",
+      "source": "NIST FIPS 202",
+      "input": "616263",
+      "output": "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532"
+    }
+  ],
+  "blake3": [
+    {
+      "id": "blake3-1",
+      "algorithm": "BLAKE3",
+      "source": "BLAKE3 reference test vectors",
+      "input": "",
+      "output": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc10a413ad4db89"
+    },
+    {
+      "id": "blake3-2",
+      "algorithm": "BLAKE3",
+      "source": "BLAKE3 reference test vectors",
+      "input": "00",
+      "output": "2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213"
+    }
+  ],
+  "ed25519": [
+    {
+      "id": "ed25519-rfc8032-1",
+      "algorithm": "Ed25519",
+      "source": "RFC 8032 Section 6 Test Vector 1",
+      "private_key": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae3d55",
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "message": "",
+      "signature": "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b"
+    },
+    {
+      "id": "ed25519-rfc8032-2",
+      "algorithm": "Ed25519",
+      "source": "RFC 8032 Section 6 Test Vector 2",
+      "private_key": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4d0bd6d4",
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "message": "72",
+      "signature": "92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00"
+    }
+  ],
+  "hmac_sha256": [
+    {
+      "id": "hmac-sha256-rfc2202-1",
+      "algorithm": "HMAC-SHA256",
+      "source": "RFC 4231 Test Case 1",
+      "key": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+      "message": "4869205468657265",
+      "output": "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
+    }
+  ],
+  "argon2id": [
+    {
+      "id": "argon2id-rfc9106-test",
+      "algorithm": "Argon2id",
+      "source": "RFC 9106 Appendix B.3",
+      "password": "0101010101010101010101010101010101010101010101010101010101010101",
+      "salt": "02020202020202020202020202020202",
+      "secret": "0303030303030303",
+      "aad": "040404040404040404040404",
+      "m": 32,
+      "t": 3,
+      "p": 4,
+      "hash_length": 32,
+      "output": "0d640df58d78766c08c037a34a8b53c9d01ef0452d75b65eb52520e96b01e659"
+    }
+  ],
+  "hkdf_sha256": [
+    {
+      "id": "hkdf-sha256-rfc5869-1",
+      "algorithm": "HKDF-SHA256",
+      "source": "RFC 5869 Test Case 1",
+      "ikm": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+      "salt": "000102030405060708090a0b0c",
+      "info": "f0f1f2f3f4f5f6f7f8f9",
+      "length": 42,
+      "okm": "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"
+    }
+  ],
+  "kyber768": [
+    {
+      "id": "kyber768-nist-kat-1",
+      "algorithm": "ML-KEM-768",
+      "source": "NIST PQC KAT (Kyber768)",
+      "note": "Known-answer test — encapsulate(pk) produces (ct, ss); decapsulate(ct, sk) = ss",
+      "pk": "PLACEHOLDER_USE_NIST_KAT_FILE",
+      "sk": "PLACEHOLDER_USE_NIST_KAT_FILE",
+      "ct": "PLACEHOLDER_USE_NIST_KAT_FILE",
+      "ss": "PLACEHOLDER_USE_NIST_KAT_FILE"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "package-name": "lombokencryptdecrypt",
+  "changelog-path": "CHANGELOG.md",
+  "bump-patch-for-minor-pre-major": true,
+  "pull-request-title-pattern": "chore: release ${version}",
+  "pull-request-header": "## LombokEncryptDecrypt Release",
+  "extra-files": [
+    {
+      "type": "toml",
+      "path": "Cargo.toml",
+      "jsonpath": "$.package.version"
+    },
+    {
+      "type": "toml",
+      "path": "rust-toolchain.toml"
+    },
+    {
+      "type": "toml",
+      "path": "pyproject.toml",
+      "jsonpath": "$.project.version"
+    },
+    {
+      "type": "xml",
+      "path": "pom.xml",
+      "xpath": "//project/version"
+    },
+    {
+      "type": "generic",
+      "path": "ports/php/src/LombokEncryptDecrypt.php",
+      "searchBy": "VERSION = '",
+      "data": "VERSION = '${version}'"
+    },
+    {
+      "type": "generic",
+      "path": "ports/go/lombokencryptdecrypt.go",
+      "searchBy": "Version = \"",
+      "data": "Version = \"${version}\""
+    },
+    {
+      "type": "generic",
+      "path": "ports/java/src/main/java/com/codinglombok/lombokencryptdecrypt/LombokEncryptDecrypt.java",
+      "searchBy": "VERSION = \"",
+      "data": "VERSION = \"${version}\""
+    },
+    {
+      "type": "generic",
+      "path": "ports/kotlin/src/main/kotlin/com/codinglombok/lombokencryptdecrypt/LombokEncryptDecrypt.kt",
+      "searchBy": "VERSION = \"",
+      "data": "VERSION = \"${version}\""
+    },
+    {
+      "type": "generic",
+      "path": "ports/swift/Sources/LombokEncryptDecrypt/LombokEncryptDecrypt.swift",
+      "searchBy": "let VERSION = \"",
+      "data": "let VERSION = \"${version}\""
+    },
+    {
+      "type": "generic",
+      "path": "ports/perl/lib/LombokEncryptDecrypt.pm",
+      "searchBy": "our $VERSION = '",
+      "data": "our $VERSION = '${version}'"
+    }
+  ]
+}

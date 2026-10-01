@@ -1,0 +1,70 @@
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+status:
+  project:
+    default:
+      target: 95%
+      threshold: 1%
+      if_no_uploads: error
+      if_not_found: success
+      if_ci_failed: error
+  patch:
+    default:
+      target: 90%
+      threshold: 1%
+
+comment:
+  layout: "header, diff, flags, components"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+
+flags:
+  typescript:
+    paths:
+      - src/
+    carryforward: false
+  rust:
+    paths:
+      - src-rust/
+    carryforward: false
+  python:
+    paths:
+      - ports/python/
+    carryforward: false
+  go:
+    paths:
+      - ports/go/
+    carryforward: false
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: auto
+        threshold: 1%
+  individual_components:
+    - component_id: core_aes
+      name: "Core AES"
+      paths:
+        - src/core/aes/**
+    - component_id: core_chacha
+      name: "Core ChaCha20"
+      paths:
+        - src/core/chacha/**
+    - component_id: pqc
+      name: "Post-Quantum"
+      paths:
+        - src/pq/**
+    - component_id: kdf
+      name: "Key Derivation"
+      paths:
+        - src/kdf/**
+    - component_id: keystore
+      name: "Key Management"
+      paths:
+        - src/keystore/**
