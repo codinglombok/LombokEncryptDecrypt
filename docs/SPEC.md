@@ -259,6 +259,36 @@ PAYLOAD(N,UTF-8 JSON) || RS_PARITY(16, LombokECC RS-255-239)
 
 ---
 
+## 12. AES block cipher, CBC and ECB
+
+### 12.1 Block cipher (NIST FIPS 197)
+
+- Key: 16, 24 or 32 bytes, otherwise `INVALID_KEY_SIZE`. Block: 16 bytes; decryption of any other length MUST fail with `INVALID_INPUT`.
+- `createAes(key)` returns `encryptBlock` and `decryptBlock`; results MUST match FIPS 197 Appendix C.
+
+### 12.2 CBC (NIST SP 800-38A §6.2)
+
+- IV: exactly 16 bytes, otherwise `INVALID_IV_SIZE`. The IV is supplied by the caller and is not prepended to the output.
+- Padding `pkcs7` (default): append n bytes of value n, 1 <= n <= 16 (a full block when the input is a multiple of 16). Decryption MUST check every padding byte and fail with `INTEGRITY_CHECK_FAILED` on any mismatch, on n = 0 or n > 16, and on empty ciphertext.
+- Padding `none`: the input MUST be a multiple of 16 bytes (`INVALID_INPUT`).
+- Ciphertext length not a multiple of 16 MUST fail with `INVALID_INPUT`.
+- CBC gives no integrity. It exists for formats that require it (for example ISO 32000 PDF encryption).
+
+### 12.3 ECB (NIST SP 800-38A §6.1)
+
+Same rules as 12.2 without IV; default padding `none`. Only for formats that require it (PDF 2.0 `Perms`).
+
+## 13. SHA-384 and SHA-512 (NIST FIPS 180-4)
+
+`sha512.hashSync`/`hash` (64 bytes) and `sha384.hashSync`/`hash` (48 bytes), pure implementation without BigInt. Output MUST match FIPS 180-4 for every input length (CI compares lengths 0-300 with OpenSSL).
+
+## 14. Legacy algorithms (`legacy` namespace)
+
+Only for reading and verifying legacy formats (for example PDF standard security handler revisions 2-4). New designs MUST NOT use them.
+
+- `legacy.md5.hashSync`/`hash`: RFC 1321; output MUST match RFC 1321 Appendix A.5.
+- `legacy.rc4(key, data)`: RC4 keystream XOR; key 1-256 bytes (`INVALID_KEY_SIZE` otherwise); encryption and decryption are the same operation.
+
 ## 11. Cross-Language Guarantees
 
 All ports MUST:

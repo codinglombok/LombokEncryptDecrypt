@@ -4,7 +4,14 @@
     "library": "LombokEncryptDecrypt",
     "date": "2026-09-18",
     "description": "Cross-language test vectors. All ports must produce byte-identical output.",
-    "sources": ["NIST FIPS 197", "NIST SP 800-38D", "RFC 8032", "RFC 7539", "NIST CAVP", "Wycheproof"]
+    "sources": [
+      "NIST FIPS 197",
+      "NIST SP 800-38D",
+      "RFC 8032",
+      "RFC 7539",
+      "NIST CAVP",
+      "Wycheproof"
+    ]
   },
   "aes_gcm": [
     {
@@ -49,7 +56,7 @@
       "algorithm": "SHA-256",
       "source": "NIST FIPS 180-4",
       "input": "616263",
-      "output": "ba7816bf8f01cfea414140de5dae2ec73b00361bbef0469f490f67c94c0ca2b"
+      "output": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     },
     {
       "id": "sha256-nist-empty",
@@ -152,6 +159,172 @@
       "sk": "PLACEHOLDER_USE_NIST_KAT_FILE",
       "ct": "PLACEHOLDER_USE_NIST_KAT_FILE",
       "ss": "PLACEHOLDER_USE_NIST_KAT_FILE"
+    }
+  ],
+  "aes_cbc": [
+    {
+      "id": "aes-cbc-128-sp800-38a-f21",
+      "algorithm": "AES-128-CBC",
+      "source": "NIST SP 800-38A F.2.1",
+      "padding": "none",
+      "key": "2b7e151628aed2a6abf7158809cf4f3c",
+      "iv": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710",
+      "ciphertext": "7649abac8119b246cee98e9b12e9197d5086cb9b507219ee95db113a917678b273bed6b8e3c1743b7116e69e222295163ff1caa1681fac09120eca307586e1a7"
+    },
+    {
+      "id": "aes-cbc-256-sp800-38a-f25",
+      "algorithm": "AES-256-CBC",
+      "source": "NIST SP 800-38A F.2.5",
+      "padding": "none",
+      "key": "603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4",
+      "iv": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710",
+      "ciphertext": "f58c4c04d6e5f1ba779eabfb5f7bfbd69cfc4e967edb808d679f777bc6702c7d39f23369a9d9bacfa530e26304231461b2eb05e2c39be9fcda6c19078c6a9d1b"
+    }
+  ],
+  "aes_ecb": [
+    {
+      "id": "aes-ecb-128-sp800-38a-f11",
+      "algorithm": "AES-128-ECB",
+      "source": "NIST SP 800-38A F.1.1",
+      "padding": "none",
+      "key": "2b7e151628aed2a6abf7158809cf4f3c",
+      "plaintext": "6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710",
+      "ciphertext": "3ad77bb40d7a3660a89ecaf32466ef97f5d3d58503b9699de785895a96fdbaaf43b1cd7f598ece23881b00e3ed0306887b0c785e27e8ad3f8223207104725dd4"
+    }
+  ],
+  "sha384": [
+    {
+      "id": "sha384-fips180-4-empty",
+      "algorithm": "SHA-384",
+      "source": "NIST FIPS 180-4 examples",
+      "input": "",
+      "output": "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b"
+    },
+    {
+      "id": "sha384-fips180-4-abc",
+      "algorithm": "SHA-384",
+      "source": "NIST FIPS 180-4 examples",
+      "input": "616263",
+      "output": "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7"
+    },
+    {
+      "id": "sha384-fips180-4-896bit",
+      "algorithm": "SHA-384",
+      "source": "NIST FIPS 180-4 examples",
+      "input": "61626364656667686263646566676869636465666768696a6465666768696a6b65666768696a6b6c666768696a6b6c6d6768696a6b6c6d6e68696a6b6c6d6e6f696a6b6c6d6e6f706a6b6c6d6e6f70716b6c6d6e6f7071726c6d6e6f707172736d6e6f70717273746e6f707172737475",
+      "output": "09330c33f71147e83d192fc782cd1b4753111b173b3b05d22fa08086e3b0f712fcc7c71a557e2db966c3e9fa91746039"
+    }
+  ],
+  "sha512": [
+    {
+      "id": "sha512-fips180-4-empty",
+      "algorithm": "SHA-512",
+      "source": "NIST FIPS 180-4 examples",
+      "input": "",
+      "output": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+    },
+    {
+      "id": "sha512-fips180-4-abc",
+      "algorithm": "SHA-512",
+      "source": "NIST FIPS 180-4 examples",
+      "input": "616263",
+      "output": "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"
+    },
+    {
+      "id": "sha512-fips180-4-896bit",
+      "algorithm": "SHA-512",
+      "source": "NIST FIPS 180-4 examples",
+      "input": "61626364656667686263646566676869636465666768696a6465666768696a6b65666768696a6b6c666768696a6b6c6d6768696a6b6c6d6e68696a6b6c6d6e6f696a6b6c6d6e6f706a6b6c6d6e6f70716b6c6d6e6f7071726c6d6e6f707172736d6e6f70717273746e6f707172737475",
+      "output": "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018501d289e4900f7e4331b99dec4b5433ac7d329eeb6dd26545e96e55b874be909"
+    }
+  ],
+  "md5": [
+    {
+      "id": "md5-rfc1321-0",
+      "algorithm": "MD5",
+      "source": "RFC 1321 A.5",
+      "legacy": true,
+      "input": "",
+      "output": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "id": "md5-rfc1321-1",
+      "algorithm": "MD5",
+      "source": "RFC 1321 A.5",
+      "legacy": true,
+      "input": "61",
+      "output": "0cc175b9c0f1b6a831c399e269772661"
+    },
+    {
+      "id": "md5-rfc1321-2",
+      "algorithm": "MD5",
+      "source": "RFC 1321 A.5",
+      "legacy": true,
+      "input": "616263",
+      "output": "900150983cd24fb0d6963f7d28e17f72"
+    },
+    {
+      "id": "md5-rfc1321-3",
+      "algorithm": "MD5",
+      "source": "RFC 1321 A.5",
+      "legacy": true,
+      "input": "6d65737361676520646967657374",
+      "output": "f96b697d7cb7938d525a2f31aaf161d0"
+    },
+    {
+      "id": "md5-rfc1321-4",
+      "algorithm": "MD5",
+      "source": "RFC 1321 A.5",
+      "legacy": true,
+      "input": "6162636465666768696a6b6c6d6e6f707172737475767778797a",
+      "output": "c3fcd3d76192e4007dfb496cca67e13b"
+    },
+    {
+      "id": "md5-rfc1321-5",
+      "algorithm": "MD5",
+      "source": "RFC 1321 A.5",
+      "legacy": true,
+      "input": "4142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a30313233343536373839",
+      "output": "d174ab98d277d9f5a5611c2c9f419d9f"
+    },
+    {
+      "id": "md5-rfc1321-6",
+      "algorithm": "MD5",
+      "source": "RFC 1321 A.5",
+      "legacy": true,
+      "input": "3132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930",
+      "output": "57edf4a22be3c955ac49da2e2107b67a"
+    }
+  ],
+  "rc4": [
+    {
+      "id": "rc4-0",
+      "algorithm": "RC4",
+      "source": "published examples",
+      "legacy": true,
+      "key": "4b6579",
+      "plaintext": "506c61696e74657874",
+      "ciphertext": "bbf316e8d940af0ad3"
+    },
+    {
+      "id": "rc4-1",
+      "algorithm": "RC4",
+      "source": "published examples",
+      "legacy": true,
+      "key": "57696b69",
+      "plaintext": "7065646961",
+      "ciphertext": "1021bf0420"
+    },
+    {
+      "id": "rc4-2",
+      "algorithm": "RC4",
+      "source": "published examples",
+      "legacy": true,
+      "key": "536563726574",
+      "plaintext": "41747461636b206174206461776e",
+      "ciphertext": "45a01f645fc35b383552544b9bf5"
     }
   ]
 }

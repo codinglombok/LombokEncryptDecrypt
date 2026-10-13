@@ -7,6 +7,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — SemVer.
 
 ## [Unreleased]
 
+### Added
+
+- AES block decryption (`aesDecryptBlock`, `createAes().decryptBlock`) and AES-CBC/AES-ECB with PKCS#7 or no padding (`aesCbc`, `aesEcb`); SPEC §12.
+- SHA-384 and SHA-512 in pure TypeScript (`sha384`, `sha512`); SPEC §13.
+- `legacy` namespace with MD5 (RFC 1321) and RC4 for reading legacy formats; SPEC §14.
+- Exports for implemented modules: `createAes`, `expandKey`, `aesEncryptBlock`, `sha256`, `sha224`.
+- Cross-language vectors: `aes_cbc`, `aes_ecb`, `sha384`, `sha512`, `md5`, `rc4` (NIST SP 800-38A, FIPS 180-4, RFC 1321).
+- `tests/unit/pdf_primitives.test.ts`: known-answer tests plus differential tests against OpenSSL.
+
+### Fixed
+
+- Wrong expected SHA-256 values: `sha256("abc")` in `tests/vectors/lombokencryptdecrypt-vectors-v1.json` and `tests/unit/sha.test.ts`, and `sha256("abcdefg")` in `tests/unit/sha.test.ts` (the old values had 63 hex digits and did not match FIPS 180-4).
+
+### Known issues (not changed here)
+
+- `npm install` fails: runtime dependencies `lombokalgoritma`, `lombokvector`, `lombokecc` are not published on npm, and `typedoc@0.25` conflicts with TypeScript 5.5.
+- `src/mac/hmac.ts` and `src/pq/kyber/kyber768.ts` import hashing from `lombokalgoritma`, the opposite direction of ADR-016.
+- SM3 gives a wrong digest for the 64-byte GM/T 0004 example (multi-block input).
+- Most modules listed under 0.1.0 below are not exported yet (see the commented exports in `src/index.ts`).
+
 ## [0.1.0] — 2026-09-18
 
 ### Added — Initial Release
