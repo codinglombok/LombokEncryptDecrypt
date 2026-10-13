@@ -45,6 +45,16 @@ export {
 // ── Platform ──────────────────────────────────────────────────────────────
 export { getPlatformCapabilities, PLATFORM } from './platform/detect.js';
 
+// ── Implemented and tested (known-answer + differential tests in tests/unit/pdf_primitives.test.ts) ──
+export { createAes, expandKey, aesEncryptBlock, aesDecryptBlock } from './core/aes/aes.js';
+export type { AesCore } from './core/aes/aes.js';
+export { aesCbc, aesEcb } from './modes/cbc.js';
+export type { BlockPadding, CbcOptions } from './modes/cbc.js';
+export { sha256, sha224 } from './core/sha/sha256.js';
+export { sha384, sha512 } from './core/sha/sha512.js';
+/** Legacy algorithms (MD5, RC4) for reading old formats only. */
+export * as legacy from './legacy/index.js';
+
 // ── Symmetric ciphers ─────────────────────────────────────────────────────
 // (modules implemented progressively — re-exported when ready)
 // export { aesGcm } from './modes/gcm.js';
@@ -53,7 +63,7 @@ export { getPlatformCapabilities, PLATFORM } from './platform/detect.js';
 // export { sm4Gcm } from './core/sm/sm4.js';
 
 // ── Hash functions ────────────────────────────────────────────────────────
-// export { sha256, sha512, sha3_256, sha3_512 } from './core/sha/index.js';
+// export { sha3_256, sha3_512 } from './core/sha/sha3.js';  (sha256/384/512 exported above)
 // export { blake2b, blake2s, blake3 } from './core/sha/blake3.js';
 // export { sm3 } from './core/sm/sm3.js';
 

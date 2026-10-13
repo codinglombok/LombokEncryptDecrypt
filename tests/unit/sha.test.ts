@@ -12,9 +12,9 @@ import { hexToBytes, bytesToHex, stringToBytes } from '../../src/utils/encoding.
 
 const SHA256_VECTORS = [
   { input: '',    output: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' },
-  { input: '61626364656667', output: '3773dea65156909838fa6c22825cafe090ff8030a88257128c1f9ef84f7f3c1' },
+  { input: '61626364656667', output: '7d1a54127b222502f5b79b5fb0803061152a44f92b37e23c6527baf665d4da9a' },
   // "abc" in hex
-  { input: '616263', output: 'ba7816bf8f01cfea414140de5dae2ec73b00361bbef0469f490f67c94c0ca2b' },
+  { input: '616263', output: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad' },
 ];
 
 describe('SHA-256', () => {

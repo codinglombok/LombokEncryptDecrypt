@@ -104,3 +104,4 @@ ports/sql/results/
 /map
 /docs/*architecture*.*
 /docs/*masterplan*.*
+*.bak
