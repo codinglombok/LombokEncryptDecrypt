@@ -17,11 +17,11 @@
  * @module hybrid/envelope
  */
 
-import type { EnvelopeEncryptedKey, SymmetricAlgorithm } from '../../types.js';
-import { randomKey256, randomIv } from '../../utils/random.js';
-import { aesGcm } from '../../modes/gcm.js';
-import { concatBytes } from '../../utils/encoding.js';
-import { LombokCryptoError, ErrorCode } from '../../errors.js';
+import type { EnvelopeEncryptedKey, SymmetricAlgorithm } from '../types.js';
+import { randomKey256, randomIv } from '../utils/random.js';
+import { aesGcm } from '../modes/gcm.js';
+import { concatBytes } from '../utils/encoding.js';
+import { LombokCryptoError, ErrorCode } from '../errors.js';
 
 export interface EnvelopeEncryptResult {
   /** Encrypted payload (contains IV + ciphertext + tag inline) */

@@ -189,7 +189,7 @@ class AesGcmTest extends TestCase
             bin2hex(LombokEncryptDecrypt::sha256(''))
         );
         self::assertSame(
-            'ba7816bf8f01cfea414140de5dae2ec73b00361bbef0469f490f67c94c0ca2b',
+            'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
             bin2hex(LombokEncryptDecrypt::sha256('abc'))
         );
     }

@@ -11,8 +11,8 @@
  * @module modes/xts
  */
 
-import { LombokCryptoError, ErrorCode } from '../../errors.js';
-import { createAes } from '../aes/aes.ts';
+import { LombokCryptoError, ErrorCode } from '../errors.js';
+import { createAes } from '../core/aes/aes.js';
 
 const BLOCK = 16;
 

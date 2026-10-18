@@ -6,6 +6,8 @@
 
 import type { Platform, PlatformCapabilities } from '../types.js';
 
+declare const Deno: unknown;
+
 function detectPlatform(): Platform {
   if (typeof process !== 'undefined' && process.versions?.node) return 'node';
   if (typeof Deno !== 'undefined') return 'deno';
@@ -74,7 +76,9 @@ export async function getPlatformCapabilities(): Promise<PlatformCapabilities> {
 
   // Detect NAPI Rust build (provides AVX2/NEON)
   try {
-    const napiModule = await import('../platform/wasm_bridge.js');
+    const bridgePath = './wasm_bridge.js';
+    const napiModule = (await import(/* @vite-ignore */ bridgePath)) as
+      { isRustCore?: boolean; hasAvx2?: () => boolean; hasNeon?: () => boolean } | undefined;
     if (napiModule?.isRustCore) {
       _capabilities = {
         ..._capabilities,

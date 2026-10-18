@@ -10,13 +10,14 @@
  * @module modes/gcm
  */
 
-import { LombokCryptoError, ErrorCode } from '../../errors.js';
-import type { AeadEncryptOptions, AeadDecryptOptions, AeadResult } from '../../types.js';
-import { randomIv } from '../../utils/random.js';
-import { timingSafeEqual } from '../../utils/timing.js';
-import { concatBytes } from '../../utils/encoding.js';
-import { HAS_NODE_CRYPTO, HAS_SUBTLE_CRYPTO, PLATFORM } from '../../platform/detect.js';
-import { createAes } from '../aes/aes.js';
+import { LombokCryptoError, ErrorCode } from '../errors.js';
+import type { AeadEncryptOptions, AeadDecryptOptions, AeadResult } from '../types.js';
+import type { CipherGCM, DecipherGCM } from 'node:crypto';
+import { randomIv } from '../utils/random.js';
+import { timingSafeEqual } from '../utils/timing.js';
+import { concatBytes } from '../utils/encoding.js';
+import { HAS_NODE_CRYPTO, HAS_SUBTLE_CRYPTO, PLATFORM } from '../platform/detect.js';
+import { createAes } from '../core/aes/aes.js';
 
 const GCM_IV_SIZE = 12;
 const GCM_TAG_SIZE = 16;
@@ -34,7 +35,7 @@ function ghash(hashKey: Uint8Array, data: Uint8Array): Uint8Array {
     const chunk = data.slice(i * 16, (i + 1) * 16);
     block.set(chunk);
     // y = (y XOR block) * H in GF(2^128)
-    for (let j = 0; j < 16; j++) y[j] ^= block[j] ?? 0;
+    for (let j = 0; j < 16; j++) y[j]! ^= block[j] ?? 0;
     gfMul(y, hashKey);
   }
   return y;
@@ -48,7 +49,7 @@ function gfMul(x: Uint8Array, y: Uint8Array): void {
   for (let i = 0; i < 128; i++) {
     const xi = (x[Math.floor(i / 8)] ?? 0) & (0x80 >>> (i % 8));
     if (xi !== 0) {
-      for (let j = 0; j < 16; j++) z[j] ^= v[j] ?? 0;
+      for (let j = 0; j < 16; j++) z[j]! ^= v[j] ?? 0;
     }
     const lsb = (v[15] ?? 0) & 1;
     // Right shift v by 1
@@ -104,7 +105,7 @@ async function encryptNode(
 ): Promise<AeadResult> {
   const { createCipheriv } = await import('node:crypto');
   const alg = `aes-${key.length * 8}-gcm`;
-  const cipher = createCipheriv(alg, key, iv, { authTagLength: tagLength } as object);
+  const cipher = createCipheriv(alg as 'aes-256-gcm', key, iv, { authTagLength: tagLength }) as CipherGCM;
   if (aad) cipher.setAAD(aad);
   const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const tag = cipher.getAuthTag();
@@ -124,7 +125,7 @@ async function decryptNode(
 ): Promise<Uint8Array> {
   const { createDecipheriv } = await import('node:crypto');
   const alg = `aes-${key.length * 8}-gcm`;
-  const decipher = createDecipheriv(alg, key, iv);
+  const decipher = createDecipheriv(alg as 'aes-256-gcm', key, iv, { authTagLength: tag.length }) as DecipherGCM;
   decipher.setAuthTag(tag);
   if (aad) decipher.setAAD(aad);
   try {
@@ -343,3 +344,6 @@ export const aesGcm = {
     return randomIv(GCM_IV_SIZE);
   },
 };
+
+/** @internal exposed for conformance tests */
+export { encryptPure as aesGcmEncryptPure, decryptPure as aesGcmDecryptPure };

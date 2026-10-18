@@ -4,8 +4,9 @@
  * @module mac/hmac
  */
 
-import { HAS_SUBTLE_CRYPTO, HAS_NODE_CRYPTO, PLATFORM } from '../../platform/detect.js';
-import { timingSafeEqual } from '../../utils/timing.js';
+import { LombokCryptoError, ErrorCode } from '../errors.js';
+import { HAS_SUBTLE_CRYPTO, HAS_NODE_CRYPTO, PLATFORM } from '../platform/detect.js';
+import { timingSafeEqual } from '../utils/timing.js';
 
 type HmacHash = 'SHA-256' | 'SHA-384' | 'SHA-512' | 'SHA-1';
 
@@ -33,8 +34,8 @@ async function hmacCompute(
     const { createHmac } = await import('node:crypto');
     return new Uint8Array(createHmac(NODE_HASH[hash]!, key).update(message).digest());
   }
-  const { hmac } = await import('lombokalgoritma/math');
-  return hmac(hash, key, message);
+  throw new LombokCryptoError(ErrorCode.UNSUPPORTED_ALGORITHM,
+    'HMAC requires WebCrypto or node:crypto; no pure-TS fallback in v0.1.0', { algorithm: `HMAC-${hash}` });
 }
 
 function makeHmac(hash: HmacHash) {

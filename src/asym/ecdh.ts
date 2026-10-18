@@ -5,9 +5,9 @@
  * @module asym/ecdh
  */
 
-import { LombokCryptoError, ErrorCode } from '../../errors.js';
-import type { KeyPair } from '../../types.js';
-import { HAS_SUBTLE_CRYPTO, HAS_NODE_CRYPTO, PLATFORM } from '../../platform/detect.js';
+import { LombokCryptoError, ErrorCode } from '../errors.js';
+import type { KeyPair } from '../types.js';
+import { HAS_SUBTLE_CRYPTO, HAS_NODE_CRYPTO, PLATFORM } from '../platform/detect.js';
 
 export type EcdhCurve = 'P-256' | 'P-384' | 'P-521' | 'X25519' | 'X448';
 
@@ -31,13 +31,13 @@ async function generateSubtle(curve: EcdhCurve): Promise<KeyPair> {
     globalThis.crypto.subtle.exportKey('jwk', (pair as CryptoKeyPair).privateKey),
     globalThis.crypto.subtle.exportKey('raw', (pair as CryptoKeyPair).publicKey),
   ]);
-  const { base64ToBytes, bytesToBase64Url } = await import('../../utils/encoding.js');
+  const { base64ToBytes, bytesToBase64Url } = await import('../utils/encoding.js');
   const priv = base64ToBytes((privJwk as JsonWebKey).d ?? '');
   return { privateKey: priv, publicKey: new Uint8Array(pubRaw as ArrayBuffer) };
 }
 
 async function deriveSubtle(curve: EcdhCurve, privateKey: Uint8Array, publicKey: Uint8Array): Promise<Uint8Array> {
-  const { bytesToBase64Url } = await import('../../utils/encoding.js');
+  const { bytesToBase64Url } = await import('../utils/encoding.js');
   const algName = curve.startsWith('X') ? curve : 'ECDH';
 
   let privCk: CryptoKey;
@@ -83,8 +83,8 @@ async function deriveNode(curve: EcdhCurve, privateKey: Uint8Array, publicKey: U
   if (curve.startsWith('X')) {
     // Use Node.js crypto.diffieHellman for X25519/X448
     const { diffieHellman, createPrivateKey, createPublicKey } = await import('node:crypto');
-    const privK = createPrivateKey({ key: privateKey, format: 'der', type: 'pkcs8' });
-    const pubK  = createPublicKey({ key: publicKey, format: 'der', type: 'spki' });
+    const privK = createPrivateKey({ key: Buffer.from(privateKey), format: 'der', type: 'pkcs8' });
+    const pubK  = createPublicKey({ key: Buffer.from(publicKey), format: 'der', type: 'spki' });
     return new Uint8Array(diffieHellman({ privateKey: privK, publicKey: pubK }));
   }
   const dh = createECDH(nodeCurve);
@@ -100,9 +100,7 @@ function makeCurve(curve: EcdhCurve) {
     async generateKeyPair(): Promise<KeyPair> {
       if (PLATFORM === 'node' && HAS_NODE_CRYPTO) return generateNode(curve);
       if (HAS_SUBTLE_CRYPTO) return generateSubtle(curve);
-      // LombokAlgoritma fallback for P-256 / X25519
-      const { ecdh } = await import('lombokalgoritma/math');
-      return ecdh.generateKeyPair(curve);
+      throw new LombokCryptoError(ErrorCode.UNSUPPORTED_ALGORITHM, 'ECDH requires WebCrypto or node:crypto in v0.1.0', { algorithm: `ECDH-${curve}` });
     },
 
     /**
@@ -112,8 +110,7 @@ function makeCurve(curve: EcdhCurve) {
     async computeSharedSecret(privateKey: Uint8Array, publicKey: Uint8Array): Promise<Uint8Array> {
       if (PLATFORM === 'node' && HAS_NODE_CRYPTO) return deriveNode(curve, privateKey, publicKey);
       if (HAS_SUBTLE_CRYPTO) return deriveSubtle(curve, privateKey, publicKey);
-      const { ecdh } = await import('lombokalgoritma/math');
-      return ecdh.computeSharedSecret(curve, privateKey, publicKey);
+      throw new LombokCryptoError(ErrorCode.UNSUPPORTED_ALGORITHM, 'ECDH requires WebCrypto or node:crypto in v0.1.0', { algorithm: `ECDH-${curve}` });
     },
 
     CURVE: curve,

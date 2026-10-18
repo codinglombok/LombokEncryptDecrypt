@@ -10,8 +10,8 @@
  * @module audit/logger
  */
 
-import type { AuditLogEntry } from '../../types.js';
-import { AUDIT_LOG_MAGIC, AUDIT_LOG_VERSION } from '../../constants.js';
+import type { AuditLogEntry } from '../types.js';
+import { AUDIT_LOG_MAGIC, AUDIT_LOG_VERSION } from '../constants.js';
 
 export interface AuditLoggerOptions {
   /** File path for persistent audit log. If omitted, in-memory only. */
@@ -120,15 +120,8 @@ export class AuditLogger {
     if (!this.options.filePath) return;
     const block = this.serializeEntry(entry);
 
-    // Attach RS parity from LombokECC
-    let blockWithParity: Uint8Array;
-    try {
-      const { encode } = await import('lombokecc');
-      blockWithParity = await encode(block);
-    } catch {
-      // LombokECC not available — write without parity
-      blockWithParity = block;
-    }
+    // RS parity (LombokECC ReedSolomon) is planned, see docs/IMPLEMENTATION_STATUS.md
+    const blockWithParity: Uint8Array = block;
 
     // Append to log file (Node.js only)
     if (typeof process !== 'undefined') {

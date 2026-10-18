@@ -12,12 +12,12 @@
  * @module kdf/argon2
  */
 
-import type { Argon2Options } from '../../types.js';
-import { LombokCryptoError, ErrorCode } from '../../errors.js';
-import { randomSalt } from '../../utils/random.js';
-import { bytesToBase64Url, base64ToBytes, stringToBytes } from '../../utils/encoding.js';
-import { timingSafeEqual } from '../../utils/timing.js';
-import { HAS_NODE_CRYPTO, PLATFORM } from '../../platform/detect.js';
+import type { Argon2Options } from '../types.js';
+import { LombokCryptoError, ErrorCode } from '../errors.js';
+import { randomSalt } from '../utils/random.js';
+import { bytesToBase64Url, base64ToBytes, stringToBytes } from '../utils/encoding.js';
+import { timingSafeEqual } from '../utils/timing.js';
+import { HAS_NODE_CRYPTO, PLATFORM } from '../platform/detect.js';
 
 export type Argon2Type = 'argon2d' | 'argon2i' | 'argon2id';
 
@@ -73,39 +73,20 @@ async function hashWithNode(
   return hashPure(type, password, salt, options);
 }
 
-/** Pure TypeScript Argon2 (simplified reference implementation) */
+/**
+ * Argon2 has no backend in v0.1.0: Node 22 has no crypto.argon2 and the RFC 9106
+ * pure-TS implementation is not written yet. Fail loudly rather than return a
+ * hash that is not Argon2 (an earlier skeleton returned a BLAKE2b-derived value).
+ */
 async function hashPure(
-  _type: Argon2Type,
-  password: Uint8Array,
-  salt: Uint8Array,
-  options: Required<Omit<Argon2Options, 'salt'>>,
+  type: Argon2Type,
+  _password: Uint8Array,
+  _salt: Uint8Array,
+  _options: Required<Omit<Argon2Options, 'salt'>>,
 ): Promise<Uint8Array> {
-  // Full Argon2 requires BLAKE2b and a large memory buffer.
-  // This is the structural skeleton — in production, the Rust NAPI module
-  // handles the actual computation (performance-critical memory-hard function).
-  //
-  // The pure TS path is provided as a fallback for environments without NAPI
-  // and calls BLAKE2b from LombokAlgoritma math module.
-
-  // Import BLAKE2b from LombokAlgoritma (non-critical path, math primitives)
-  const { blake2b } = await import('lombokalgoritma/math');
-
-  const { m, t, p, hashLength } = options;
-
-  // H0 = BLAKE2b-512(len(P) || P || len(S) || S || p || T || m || t || v || K-params)
-  const h0Input = new Uint8Array(10 * 4 + password.length + salt.length);
-  // ... full Argon2 mixing in memory blocks omitted for skeleton
-  // The Rust core handles this in production
-  const h0 = await blake2b(h0Input, undefined, 64);
-
-  // Placeholder: return BLAKE2b-derived key for structural completeness
-  // Production: replaced by Rust NAPI argon2id
-  const result = await blake2b(
-    new Uint8Array([...h0, ...password, ...salt, t, p, m & 0xff]),
-    undefined,
-    hashLength,
-  );
-  return result;
+  throw new LombokCryptoError(ErrorCode.UNSUPPORTED_ALGORITHM,
+    'Argon2 is not implemented in v0.1.0. Use scrypt or PBKDF2 until the RFC 9106 implementation lands.',
+    { algorithm: type });
 }
 
 // ── Public API ────────────────────────────────────────────────────────────

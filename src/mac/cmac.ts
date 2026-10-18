@@ -6,10 +6,10 @@
  * @module mac/cmac
  */
 
-import { LombokCryptoError, ErrorCode } from '../../errors.js';
+import { LombokCryptoError, ErrorCode } from '../errors.js';
 import { createAes } from '../core/aes/aes.js';
-import { timingSafeEqual } from '../../utils/timing.js';
-import { xorBytes } from '../../utils/encoding.js';
+import { timingSafeEqual } from '../utils/timing.js';
+import { xorBytes } from '../utils/encoding.js';
 
 const BLOCK = 16;
 const R128  = new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x87]);
@@ -31,11 +31,11 @@ function generateSubkeys(key: Uint8Array): [Uint8Array, Uint8Array] {
 
   // K1 = L << 1 XOR (0x87 if MSB of L is 1)
   const k1 = leftShift1(L);
-  if (L[0]! & 0x80) { k1[15] ^= 0x87; }
+  if (L[0]! & 0x80) { k1[15]! ^= 0x87; }
 
   // K2 = K1 << 1 XOR (0x87 if MSB of K1 is 1)
   const k2 = leftShift1(k1);
-  if (k1[0]! & 0x80) { k2[15] ^= 0x87; }
+  if (k1[0]! & 0x80) { k2[15]! ^= 0x87; }
 
   return [k1, k2];
 }

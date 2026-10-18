@@ -16,9 +16,13 @@ const RC: bigint[] = [
   0x8000000080008081n, 0x8000000000008080n, 0x0000000080000001n, 0x8000000080008008n,
 ];
 
+// Rho rotation offsets r[x][y] from FIPS 202 Table 2, laid out by lane index x + 5*y.
 const ROT: number[] = [
-  1,  3,  6,  10, 15, 21, 28, 36, 45, 55, 2,  14,
-  27, 41, 56, 8,  25, 43, 62, 18, 39, 61, 20, 44,
+  0,  1,  62, 28, 27,
+  36, 44, 6,  55, 20,
+  3,  10, 43, 25, 39,
+  41, 45, 15, 21, 8,
+  18, 2,  61, 56, 14,
 ];
 
 function rotl64(x: bigint, n: number): bigint {
@@ -33,16 +37,17 @@ function keccakF(state: bigint[]): void {
     for (let i = 0; i < 25; i++) state[i] = state[i]! ^ D[i%5]!;
     // ρ + π
     const B: bigint[] = new Array(25).fill(0n);
-    B[0] = state[0]!;
-    for (let i = 1; i < 25; i++) {
-      const x = i % 5, y = Math.floor(i / 5);
-      B[(y + 2*x) % 5 + 5 * x] = rotl64(state[x + 5*y]!, ROT[i-1]!);
+    for (let y = 0; y < 5; y++) {
+      for (let x = 0; x < 5; x++) {
+        // B[y, 2x + 3y] = rot(A[x, y], r[x, y])
+        B[y + 5 * ((2 * x + 3 * y) % 5)] = rotl64(state[x + 5 * y]!, ROT[x + 5 * y]!);
+      }
     }
     // χ
     for (let y = 0; y < 5; y++) {
       for (let x = 0; x < 5; x++) {
         state[x + 5*y] = B[x + 5*y]! ^ ((~B[(x+1)%5 + 5*y]!) & B[(x+2)%5 + 5*y]!);
-        state[x + 5*y] &= 0xFFFFFFFFFFFFFFFFn;
+        state[x + 5*y]! &= 0xFFFFFFFFFFFFFFFFn;
       }
     }
     // ι
@@ -50,14 +55,14 @@ function keccakF(state: bigint[]): void {
   }
 }
 
-function keccakSponge(data: Uint8Array, rate: number, outputLen: number, domain: number): Uint8Array {
+export function keccakSponge(data: Uint8Array, rate: number, outputLen: number, domain: number): Uint8Array {
   const state: bigint[] = new Array(25).fill(0n);
   const rateBytes = rate / 8;
   // Absorb
-  const padded = new Uint8Array(Math.ceil((data.length + 1) / rateBytes + 1) * rateBytes);
+  const padded = new Uint8Array(Math.ceil((data.length + 1) / rateBytes) * rateBytes);
   padded.set(data);
   padded[data.length] = domain;
-  padded[padded.length - 1] |= 0x80;
+  padded[padded.length - 1]! |= 0x80;
   for (let i = 0; i < padded.length; i += rateBytes) {
     for (let j = 0; j < rateBytes / 8; j++) {
       let word = 0n;

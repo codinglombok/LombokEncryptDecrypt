@@ -1,119 +1,134 @@
 /**
  * LombokEncryptDecrypt — Streaming Decrypt
- * Decrypts output produced by encrypt_stream.ts.
+ * Decrypts output produced by encrypt_stream.ts (see that file for the record format).
+ *
+ * Guarantees: records must arrive in order (INTEGRITY_CHECK_FAILED otherwise), a
+ * stream without an authenticated LAST record is rejected as truncated, and bytes
+ * after the LAST record are rejected.
+ *
  * @module stream/decrypt_stream
  */
 
-import type { StreamDecryptOptions } from '../../types.js';
-import { STREAM_CHUNK_SIZE } from '../../constants.js';
-import { aesGcm } from '../../modes/gcm.js';
+import type { StreamDecryptOptions } from '../types.js';
+import { aesGcm } from '../modes/gcm.js';
 import { chaCha20Poly1305 } from '../core/chacha/chacha20.js';
-import { concatBytes } from '../../utils/encoding.js';
-import { LombokCryptoError, ErrorCode } from '../../errors.js';
+import { xchaChaPoly1305 } from '../core/chacha/xchacha20.js';
+import { concatBytes } from '../utils/encoding.js';
+import { LombokCryptoError, ErrorCode } from '../errors.js';
+import { STREAM_FLAG_LAST, STREAM_FLAG_MORE } from './encrypt_stream.js';
 
-const IV_LEN  = 12;
 const TAG_LEN = 16;
-const IDX_LEN = 4;
+const MAX_CT_LEN = 16 * 1024 * 1024;
 
 function readBE32(buf: Uint8Array, off: number): number {
-  return (((buf[off]??0) << 24) | ((buf[off+1]??0) << 16) | ((buf[off+2]??0) << 8) | (buf[off+3]??0)) >>> 0;
+  return (((buf[off]!) << 24) | ((buf[off + 1]!) << 16) | ((buf[off + 2]!) << 8) | (buf[off + 3]!)) >>> 0;
 }
 
-// ── Chunk decrypt ─────────────────────────────────────────────────────────
+function ivLength(algorithm: string): number {
+  switch (algorithm) {
+    case 'AES-256-GCM':
+    case 'CHACHA20-POLY1305':
+      return 12;
+    case 'XCHACHA20-POLY1305':
+      return 24;
+    default:
+      throw new LombokCryptoError(ErrorCode.UNSUPPORTED_ALGORITHM, `Unsupported stream algorithm: ${algorithm}`);
+  }
+}
 
-async function decryptChunk(
+async function open(
   algorithm: string,
   key: Uint8Array,
-  aad: Uint8Array | undefined,
-  packed: Uint8Array,
-  expectedIndex: number,
+  iv: Uint8Array,
+  ciphertext: Uint8Array,
+  tag: Uint8Array,
+  aad: Uint8Array,
 ): Promise<Uint8Array> {
-  if (packed.length < IDX_LEN + IV_LEN + TAG_LEN) {
-    throw new LombokCryptoError(ErrorCode.INVALID_INPUT, 'Encrypted chunk too short');
+  switch (algorithm) {
+    case 'AES-256-GCM':
+      return aesGcm.decrypt(ciphertext, key, iv, tag, { aad });
+    case 'CHACHA20-POLY1305':
+      return chaCha20Poly1305.decrypt(ciphertext, key, iv, tag, { aad });
+    default:
+      return xchaChaPoly1305.decrypt(ciphertext, key, iv, tag, { aad });
   }
-
-  const chunkIndex = readBE32(packed, 0);
-  if (chunkIndex !== expectedIndex) {
-    throw new LombokCryptoError(
-      ErrorCode.INTEGRITY_CHECK_FAILED,
-      `Stream chunk out of order: expected ${expectedIndex}, got ${chunkIndex}`,
-    );
-  }
-
-  const iv         = packed.slice(IDX_LEN, IDX_LEN + IV_LEN);
-  const ciphertext = packed.slice(IDX_LEN + IV_LEN, packed.length - TAG_LEN);
-  const tag        = packed.slice(packed.length - TAG_LEN);
-
-  const indexBytes = packed.slice(0, IDX_LEN);
-  const chunkAad   = aad ? concatBytes(aad, indexBytes) : indexBytes;
-
-  if (algorithm === 'CHACHA20-POLY1305') {
-    return chaCha20Poly1305.decrypt(ciphertext, key, iv, tag, { aad: chunkAad });
-  }
-  return aesGcm.decrypt(ciphertext, key, iv, tag, { aad: chunkAad });
 }
-
-// ── Public streaming API ──────────────────────────────────────────────────
 
 export function createDecryptStream(options: StreamDecryptOptions): {
   update: (encrypted: Uint8Array) => Promise<Uint8Array[]>;
   final: () => Promise<Uint8Array>;
 } {
-  const chunkSize  = options.chunkSize ?? STREAM_CHUNK_SIZE;
-  const encChunkSize = IDX_LEN + IV_LEN + chunkSize + TAG_LEN;
+  const ivLen = ivLength(options.algorithm);
+  const headerLen = 4 + 1 + ivLen + 4;
 
-  let buffer    = new Uint8Array(0);
-  let chunkIdx  = 0;
-  let finalised = false;
+  let buffer = new Uint8Array(0);
+  let expectedIndex = 0;
+  let sawLast = false;
 
   return {
     async update(incoming: Uint8Array): Promise<Uint8Array[]> {
-      if (finalised) throw new LombokCryptoError(ErrorCode.STREAM_FINALISED, 'Stream already finalised');
-      buffer = concatBytes(buffer, incoming);
+      if (incoming.length > 0 && sawLast) {
+        throw new LombokCryptoError(ErrorCode.INTEGRITY_CHECK_FAILED, 'Unexpected data after the final stream record');
+      }
+      buffer = buffer.length === 0 ? incoming.slice() : concatBytes(buffer, incoming);
       const out: Uint8Array[] = [];
+      let offset = 0;
 
-      while (buffer.length >= encChunkSize) {
-        // Check for sentinel
-        if (buffer[0] === 0xFF && buffer[1] === 0xFF && buffer[2] === 0xFF && buffer[3] === 0xFF) {
-          finalised = true;
-          buffer = buffer.slice(4);
-          break;
+      while (!sawLast && buffer.length - offset >= headerLen) {
+        const index = readBE32(buffer, offset);
+        const flags = buffer[offset + 4]!;
+        const ctLen = readBE32(buffer, offset + 5 + ivLen);
+
+        if (index !== expectedIndex) {
+          throw new LombokCryptoError(ErrorCode.INTEGRITY_CHECK_FAILED,
+            `Stream chunk out of order: expected ${expectedIndex}, got ${index}`);
         }
-        const chunk = buffer.slice(0, encChunkSize);
-        buffer = buffer.slice(encChunkSize);
-        out.push(await decryptChunk(options.algorithm, options.key, options.aad, chunk, chunkIdx++));
+        if (flags !== STREAM_FLAG_MORE && flags !== STREAM_FLAG_LAST) {
+          throw new LombokCryptoError(ErrorCode.INVALID_INPUT, 'Invalid stream record flags');
+        }
+        if (ctLen > MAX_CT_LEN) {
+          throw new LombokCryptoError(ErrorCode.INVALID_INPUT, 'Stream record length exceeds the 16 MiB limit');
+        }
+        const total = headerLen + ctLen + TAG_LEN;
+        if (buffer.length - offset < total) break; // wait for more data
+
+        const iv = buffer.slice(offset + 5, offset + 5 + ivLen);
+        const ciphertext = buffer.slice(offset + headerLen, offset + headerLen + ctLen);
+        const tag = buffer.slice(offset + headerLen + ctLen, offset + total);
+        const aadSuffix = buffer.slice(offset, offset + 5); // index || flags
+        const aad = options.aad ? concatBytes(options.aad, aadSuffix) : aadSuffix;
+
+        out.push(await open(options.algorithm, options.key, iv, ciphertext, tag, aad));
+        expectedIndex++;
+        offset += total;
+        if (flags === STREAM_FLAG_LAST) sawLast = true;
+      }
+
+      buffer = buffer.slice(offset);
+      if (sawLast && buffer.length > 0) {
+        throw new LombokCryptoError(ErrorCode.INTEGRITY_CHECK_FAILED, 'Unexpected data after the final stream record');
       }
       return out;
     },
 
+    /** Verifies the stream ended with an authenticated LAST record. Returns no extra plaintext. */
     async final(): Promise<Uint8Array> {
-      // Flush any remaining partial chunk (smaller than chunkSize)
-      const out: Uint8Array[] = [];
-      while (buffer.length >= IDX_LEN + IV_LEN + TAG_LEN + 1) {
-        if (buffer[0] === 0xFF && buffer[1] === 0xFF && buffer[2] === 0xFF && buffer[3] === 0xFF) {
-          finalised = true;
-          break;
-        }
-        const minLen = IDX_LEN + IV_LEN + TAG_LEN;
-        if (buffer.length < minLen) break;
-        out.push(await decryptChunk(options.algorithm, options.key, options.aad, buffer, chunkIdx++));
-        buffer = new Uint8Array(0);
+      if (!sawLast) {
+        throw new LombokCryptoError(ErrorCode.INTEGRITY_CHECK_FAILED, 'Stream truncated: no authenticated final record');
       }
-      return concatBytes(...out);
+      return new Uint8Array(0);
     },
   };
 }
 
-/** Decrypt an async generator of encrypted chunks */
+/** Decrypt an async iterable of encrypted records. Throws if the stream is truncated. */
 export async function* decryptStreamGen(
   source: AsyncIterable<Uint8Array>,
   options: StreamDecryptOptions,
 ): AsyncGenerator<Uint8Array> {
   const stream = createDecryptStream(options);
   for await (const chunk of source) {
-    const decrypted = await stream.update(chunk);
-    for (const d of decrypted) yield d;
+    for (const plain of await stream.update(chunk)) yield plain;
   }
-  const last = await stream.final();
-  if (last.length > 0) yield last;
+  await stream.final();
 }

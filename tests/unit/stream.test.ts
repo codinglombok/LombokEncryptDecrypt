@@ -94,8 +94,8 @@ describe('Streaming Encrypt / Decrypt', () => {
       chunks.push(await enc.final());
       const encBytes = concatBytes(...chunks);
 
-      // Swap first two chunks (each is 4+12+chunkSize+16 bytes)
-      const chunkLen = 4 + 12 + 16384 + 16;
+      // Swap first two records (each is index4 + flags1 + iv12 + ctLen4 + ct + tag16)
+      const chunkLen = 4 + 1 + 12 + 4 + 16384 + 16;
       const chunk0 = encBytes.slice(0, chunkLen);
       const chunk1 = encBytes.slice(chunkLen, chunkLen * 2);
       const rest   = encBytes.slice(chunkLen * 2);
@@ -105,6 +105,86 @@ describe('Streaming Encrypt / Decrypt', () => {
       await expect(dec.update(swapped)).rejects.toMatchObject({
         code: 'INTEGRITY_CHECK_FAILED',
       });
+    });
+  });
+
+  describe('framing, truncation and algorithms', () => {
+    const concat = (parts: Uint8Array[]) => concatBytes(...parts);
+
+    async function encryptAll(data: Uint8Array, algorithm: 'AES-256-GCM' | 'CHACHA20-POLY1305' | 'XCHACHA20-POLY1305', chunkSize: number, aad?: Uint8Array) {
+      const enc = createEncryptStream({ algorithm, key, chunkSize, ...(aad ? { aad } : {}) });
+      const parts = await enc.update(data);
+      parts.push(await enc.final());
+      return concat(parts);
+    }
+    async function decryptAll(data: Uint8Array, algorithm: 'AES-256-GCM' | 'CHACHA20-POLY1305' | 'XCHACHA20-POLY1305', aad?: Uint8Array) {
+      const dec = createDecryptStream({ algorithm, key, ...(aad ? { aad } : {}) });
+      const parts = await dec.update(data);
+      parts.push(await dec.final());
+      return concat(parts);
+    }
+
+    it.each(['AES-256-GCM', 'CHACHA20-POLY1305', 'XCHACHA20-POLY1305'] as const)('%s roundtrip across sizes', async (alg) => {
+      for (const size of [0, 1, 4095, 4096, 4097, 8192, 10000]) {
+        const data = new Uint8Array(size).map((_, i) => (i * 7) & 0xff);
+        const out = await decryptAll(await encryptAll(data, alg, 4096), alg);
+        expect(bytesToHex(out)).toBe(bytesToHex(data));
+      }
+    });
+
+    it('empty stream still produces an authenticated final record', async () => {
+      const encrypted = await encryptAll(new Uint8Array(0), 'AES-256-GCM', 1024);
+      expect(encrypted.length).toBeGreaterThan(0);
+      expect((await decryptAll(encrypted, 'AES-256-GCM')).length).toBe(0);
+    });
+
+    it('rejects a stream truncated at a record boundary', async () => {
+      const data = new Uint8Array(3 * 4096).fill(1);
+      const encrypted = await encryptAll(data, 'AES-256-GCM', 4096);
+      const record = 4 + 1 + 12 + 4 + 4096 + 16;
+      const truncated = encrypted.slice(0, record * 2); // drop the LAST record
+      const dec = createDecryptStream({ algorithm: 'AES-256-GCM', key });
+      await dec.update(truncated);
+      await expect(dec.final()).rejects.toMatchObject({ code: 'INTEGRITY_CHECK_FAILED' });
+    });
+
+    it('rejects a forged LAST flag on an earlier record', async () => {
+      const encrypted = await encryptAll(new Uint8Array(3 * 4096).fill(2), 'AES-256-GCM', 4096);
+      const forged = encrypted.slice();
+      forged[4] = 0x01; // flip first record's flag to LAST
+      const dec = createDecryptStream({ algorithm: 'AES-256-GCM', key });
+      await expect(dec.update(forged)).rejects.toMatchObject({ code: 'AUTHENTICATION_FAILED' });
+    });
+
+    it('rejects tampered ciphertext', async () => {
+      const encrypted = await encryptAll(new Uint8Array(100).fill(3), 'AES-256-GCM', 4096);
+      const bad = encrypted.slice();
+      bad[4 + 1 + 12 + 4 + 5] ^= 0x01;
+      const dec = createDecryptStream({ algorithm: 'AES-256-GCM', key });
+      await expect(dec.update(bad)).rejects.toMatchObject({ code: 'AUTHENTICATION_FAILED' });
+    });
+
+    it('rejects data after the final record', async () => {
+      const encrypted = await encryptAll(new Uint8Array(10).fill(4), 'AES-256-GCM', 4096);
+      const dec = createDecryptStream({ algorithm: 'AES-256-GCM', key });
+      await expect(dec.update(concatBytes(encrypted, new Uint8Array([1])))).rejects.toMatchObject({ code: 'INTEGRITY_CHECK_FAILED' });
+    });
+
+    it('binds caller AAD', async () => {
+      const aad = new TextEncoder().encode('ctx-1');
+      const encrypted = await encryptAll(new Uint8Array(50).fill(5), 'AES-256-GCM', 4096, aad);
+      expect((await decryptAll(encrypted, 'AES-256-GCM', aad)).length).toBe(50);
+      await expect(decryptAll(encrypted, 'AES-256-GCM', new TextEncoder().encode('ctx-2'))).rejects.toMatchObject({ code: 'AUTHENTICATION_FAILED' });
+    });
+
+    it('accepts input fed in small pieces', async () => {
+      const data = new Uint8Array(20000).map((_, i) => i & 0xff);
+      const encrypted = await encryptAll(data, 'AES-256-GCM', 4096);
+      const dec = createDecryptStream({ algorithm: 'AES-256-GCM', key });
+      const parts: Uint8Array[] = [];
+      for (let i = 0; i < encrypted.length; i += 333) parts.push(...await dec.update(encrypted.slice(i, i + 333)));
+      parts.push(await dec.final());
+      expect(bytesToHex(concat(parts))).toBe(bytesToHex(data));
     });
   });
 });

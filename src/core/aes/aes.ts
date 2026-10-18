@@ -174,76 +174,10 @@ function subShiftNoMix(a: number, b: number, c: number, d: number): number {
 
 // ── Public AES ECB interface ──────────────────────────────────────────────
 
-// ── Inverse cipher (FIPS 197 §5.3) ────────────────────────────────────────
-
-const INV_SBOX = new Uint8Array(256);
-for (let i = 0; i < 256; i++) INV_SBOX[SBOX[i]!] = i;
-
-function gmul(a: number, b: number): number {
-  let p = 0;
-  for (let i = 0; i < 8; i++) {
-    if (b & 1) p ^= a;
-    const hi = a & 0x80;
-    a = (a << 1) & 0xff;
-    if (hi) a ^= 0x1b;
-    b >>= 1;
-  }
-  return p;
-}
-
-const MUL9 = new Uint8Array(256);
-const MUL11 = new Uint8Array(256);
-const MUL13 = new Uint8Array(256);
-const MUL14 = new Uint8Array(256);
-for (let i = 0; i < 256; i++) {
-  MUL9[i] = gmul(i, 9); MUL11[i] = gmul(i, 11); MUL13[i] = gmul(i, 13); MUL14[i] = gmul(i, 14);
-}
-
-/** AES block decrypt (16 bytes) with the round keys from {@link expandKey}. Pure TS. */
-export function aesDecryptBlock(block: Uint8Array, roundKeys: Uint32Array): Uint8Array {
-  if (block.length !== 16) {
-    throw new LombokCryptoError(ErrorCode.INVALID_INPUT, `AES block must be 16 bytes; got ${block.length}`, { algorithm: 'AES' });
-  }
-  const nr = roundKeys.length / 4 - 1;
-  const s = new Uint8Array(16);
-  const addRoundKey = (round: number): void => {
-    for (let c = 0; c < 4; c++) {
-      const w = roundKeys[round * 4 + c]!;
-      s[c * 4] = s[c * 4]! ^ (w >>> 24);
-      s[c * 4 + 1] = s[c * 4 + 1]! ^ ((w >>> 16) & 0xff);
-      s[c * 4 + 2] = s[c * 4 + 2]! ^ ((w >>> 8) & 0xff);
-      s[c * 4 + 3] = s[c * 4 + 3]! ^ (w & 0xff);
-    }
-  };
-  const invShiftSub = (): void => {
-    const t = Uint8Array.from(s);
-    for (let c = 0; c < 4; c++) {
-      for (let r = 0; r < 4; r++) s[((c + r) % 4) * 4 + r] = INV_SBOX[t[c * 4 + r]!]!;
-    }
-  };
-  s.set(block);
-  addRoundKey(nr);
-  for (let round = nr - 1; round >= 1; round--) {
-    invShiftSub();
-    addRoundKey(round);
-    for (let c = 0; c < 4; c++) {
-      const a0 = s[c * 4]!, a1 = s[c * 4 + 1]!, a2 = s[c * 4 + 2]!, a3 = s[c * 4 + 3]!;
-      s[c * 4] = MUL14[a0]! ^ MUL11[a1]! ^ MUL13[a2]! ^ MUL9[a3]!;
-      s[c * 4 + 1] = MUL9[a0]! ^ MUL14[a1]! ^ MUL11[a2]! ^ MUL13[a3]!;
-      s[c * 4 + 2] = MUL13[a0]! ^ MUL9[a1]! ^ MUL14[a2]! ^ MUL11[a3]!;
-      s[c * 4 + 3] = MUL11[a0]! ^ MUL13[a1]! ^ MUL9[a2]! ^ MUL14[a3]!;
-    }
-  }
-  invShiftSub();
-  addRoundKey(0);
-  return s;
-}
-
 export interface AesCore {
   readonly keyLength: 16 | 24 | 32;
   readonly rounds: 10 | 12 | 14;
   encryptBlock(block: Uint8Array): Uint8Array;
-  decryptBlock(block: Uint8Array): Uint8Array;
 }
 
 export function createAes(key: Uint8Array): AesCore {
@@ -254,6 +188,5 @@ export function createAes(key: Uint8Array): AesCore {
     keyLength: keyLen,
     rounds,
     encryptBlock: (block: Uint8Array) => aesEncryptBlock(block, roundKeys),
-    decryptBlock: (block: Uint8Array) => aesDecryptBlock(block, roundKeys),
   };
 }
