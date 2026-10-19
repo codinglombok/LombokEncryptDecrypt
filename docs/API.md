@@ -1,3 +1,5 @@
+> **Status:** design document. Describes planned scope; see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for what is actually implemented in v0.1.0.
+
 # LombokEncryptDecrypt — API Reference
 
 **Version:** 0.1.0 | **License:** Apache-2.0

@@ -67,7 +67,7 @@ export const enum ErrorCode {
 export class LombokCryptoError extends Error {
   public readonly code: ErrorCode;
   public readonly algorithm?: string;
-  public readonly cause?: unknown;
+  public override readonly cause?: unknown;
 
   constructor(code: ErrorCode, message: string, options?: { algorithm?: string; cause?: unknown }) {
     super(message);

@@ -97,14 +97,32 @@ async function verifySubtle(message: Uint8Array, signature: Uint8Array, publicKe
   return globalThis.crypto.subtle.verify({ name: 'Ed25519' }, ck, signature, message);
 }
 
-// ── Pure TS fallback (via LombokAlgoritma) ────────────────────────────────
+// ── Public key from seed via WebCrypto (PKCS#8 import → JWK export) ───────
+
+const ED25519_PKCS8_PREFIX = new Uint8Array([
+  0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20,
+]);
+
+async function publicFromSeedSubtle(seed: Uint8Array): Promise<Uint8Array> {
+  const pkcs8 = new Uint8Array(ED25519_PKCS8_PREFIX.length + seed.length);
+  pkcs8.set(ED25519_PKCS8_PREFIX);
+  pkcs8.set(seed, ED25519_PKCS8_PREFIX.length);
+  const key = await globalThis.crypto.subtle.importKey('pkcs8', pkcs8, { name: 'Ed25519' }, true, ['sign']);
+  const jwk = await globalThis.crypto.subtle.exportKey('jwk', key);
+  const x = (jwk.x ?? '').replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(x + '='.repeat((4 - (x.length % 4)) % 4));
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+
+function noBackend(): never {
+  throw new LombokCryptoError(ErrorCode.UNSUPPORTED_ALGORITHM,
+    'Ed25519 requires node:crypto or WebCrypto Ed25519; no pure-TS fallback in v0.1.0', { algorithm: 'Ed25519' });
+}
 
 async function generateFromSeed(seed: Uint8Array): Promise<KeyPair> {
   if (PLATFORM === 'node' && HAS_NODE_CRYPTO) return generateFromSeedNode(seed);
-  // LombokAlgoritma provides the Ed25519 field arithmetic (non-critical-path)
-  const { ed25519 } = await import('lombokalgoritma/math');
-  const publicKey = await ed25519.publicFromSeed(seed);
-  return { privateKey: seed, publicKey };
+  if (!HAS_SUBTLE_CRYPTO) noBackend();
+  return { privateKey: seed, publicKey: await publicFromSeedSubtle(seed) };
 }
 
 async function getPublicKeyFromSeed(seed: Uint8Array): Promise<Uint8Array> {
@@ -112,8 +130,8 @@ async function getPublicKeyFromSeed(seed: Uint8Array): Promise<Uint8Array> {
     const kp = await generateFromSeedNode(seed);
     return kp.publicKey;
   }
-  const { ed25519 } = await import('lombokalgoritma/math');
-  return ed25519.publicFromSeed(seed);
+  if (!HAS_SUBTLE_CRYPTO) noBackend();
+  return publicFromSeedSubtle(seed);
 }
 
 // ── Public API ────────────────────────────────────────────────────────────
@@ -149,8 +167,7 @@ export const ed25519 = {
     }
     if (PLATFORM === 'node' && HAS_NODE_CRYPTO) return signNode(message, privateKey);
     if (HAS_SUBTLE_CRYPTO) return signSubtle(message, privateKey);
-    const { ed25519: ed } = await import('lombokalgoritma/math');
-    return ed.sign(message, privateKey);
+    return noBackend();
   },
 
   /**
@@ -163,8 +180,7 @@ export const ed25519 = {
     try {
       if (PLATFORM === 'node' && HAS_NODE_CRYPTO) return verifyNode(message, signature, publicKey);
       if (HAS_SUBTLE_CRYPTO) return verifySubtle(message, signature, publicKey);
-      const { ed25519: ed } = await import('lombokalgoritma/math');
-      return ed.verify(message, signature, publicKey);
+      return false; // no backend available: fail closed
     } catch {
       return false;
     }

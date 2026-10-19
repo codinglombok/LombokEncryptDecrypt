@@ -174,7 +174,7 @@ class LombokEncryptDecryptTest {
         assertThat(HEX.formatHex(LombokEncryptDecrypt.sha256(new byte[0])))
             .isEqualTo("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
         assertThat(HEX.formatHex(LombokEncryptDecrypt.sha256("abc".getBytes())))
-            .isEqualTo("ba7816bf8f01cfea414140de5dae2ec73b00361bbef0469f490f67c94c0ca2b");
+            .isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     }
 
     @Test

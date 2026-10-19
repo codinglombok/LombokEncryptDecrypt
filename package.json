@@ -1,7 +1,7 @@
 {
   "name": "lombokencryptdecrypt",
   "version": "0.1.0",
-  "description": "Universal encrypt/decrypt library — AES/ChaCha20/Kyber/Dilithium/SPHINCS+/SM2/SM3/SM4/ZUC/SNOW3G/HSM/TPM — 12 languages, post-quantum ready, Apache 2.0",
+  "description": "Universal encrypt/decrypt library \u2014 AES/ChaCha20/Kyber/Dilithium/SPHINCS+/SM2/SM3/SM4/ZUC/SNOW3G/HSM/TPM \u2014 12 languages, post-quantum ready, Apache 2.0",
   "license": "Apache-2.0",
   "author": "codinglombok <codinglombok@gmail.com>",
   "homepage": "https://github.com/codinglombok/LombokEncryptDecrypt#readme",
@@ -13,78 +13,104 @@
     "url": "https://github.com/codinglombok/LombokEncryptDecrypt/issues"
   },
   "keywords": [
-    "encrypt", "decrypt", "cryptography", "aes", "chacha20", "sha256", "blake3",
-    "post-quantum", "kyber", "dilithium", "sphincs", "falcon", "ml-kem", "ml-dsa",
-    "ecdh", "ecdsa", "ed25519", "rsa", "hkdf", "argon2", "pbkdf2",
-    "sm2", "sm3", "sm4", "zuc", "snow3g", "5g", "lte",
-    "hsm", "pkcs11", "tpm", "sgx", "secure-enclave",
-    "hpke", "ecies", "envelope-encryption", "key-management",
-    "format-preserving-encryption", "fpe", "ff1", "xts",
-    "audit-log", "fips", "nist", "pqc", "lombok", "lombok-ecosystem",
-    "wasm", "zero-dep", "typescript", "rust"
+    "encrypt",
+    "decrypt",
+    "cryptography",
+    "aes",
+    "chacha20",
+    "sha256",
+    "blake3",
+    "post-quantum",
+    "kyber",
+    "dilithium",
+    "sphincs",
+    "falcon",
+    "ml-kem",
+    "ml-dsa",
+    "ecdh",
+    "ecdsa",
+    "ed25519",
+    "rsa",
+    "hkdf",
+    "argon2",
+    "pbkdf2",
+    "sm2",
+    "sm3",
+    "sm4",
+    "zuc",
+    "snow3g",
+    "5g",
+    "lte",
+    "hsm",
+    "pkcs11",
+    "tpm",
+    "sgx",
+    "secure-enclave",
+    "hpke",
+    "ecies",
+    "envelope-encryption",
+    "key-management",
+    "format-preserving-encryption",
+    "fpe",
+    "ff1",
+    "xts",
+    "audit-log",
+    "fips",
+    "nist",
+    "pqc",
+    "lombok",
+    "lombok-ecosystem",
+    "wasm",
+    "zero-dep",
+    "typescript",
+    "rust"
   ],
   "type": "module",
   "sideEffects": false,
   "exports": {
     ".": {
-      "node": {
-        "require": "./dist/cjs/index.cjs",
-        "import": "./dist/esm/index.js",
-        "types": "./dist/types/index.d.ts"
-      },
-      "browser": {
-        "import": "./dist/browser/index.js",
-        "types": "./dist/types/index.d.ts"
-      },
-      "deno": "./dist/esm/index.js",
-      "bun": "./dist/esm/index.js",
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.cjs",
       "default": "./dist/esm/index.js"
     },
     "./symmetric": {
-      "import": "./dist/esm/symmetric.js",
-      "types": "./dist/types/symmetric.d.ts"
+      "types": "./dist/types/symmetric.d.ts",
+      "import": "./dist/esm/symmetric.js"
     },
     "./asymmetric": {
-      "import": "./dist/esm/asymmetric.js",
-      "types": "./dist/types/asymmetric.d.ts"
-    },
-    "./pqc": {
-      "import": "./dist/esm/pqc.js",
-      "types": "./dist/types/pqc.d.ts"
+      "types": "./dist/types/asymmetric.d.ts",
+      "import": "./dist/esm/asymmetric.js"
     },
     "./hash": {
-      "import": "./dist/esm/hash.js",
-      "types": "./dist/types/hash.d.ts"
+      "types": "./dist/types/hash.d.ts",
+      "import": "./dist/esm/hash.js"
     },
     "./mac": {
-      "import": "./dist/esm/mac.js",
-      "types": "./dist/types/mac.d.ts"
+      "types": "./dist/types/mac.d.ts",
+      "import": "./dist/esm/mac.js"
     },
     "./kdf": {
-      "import": "./dist/esm/kdf.js",
-      "types": "./dist/types/kdf.d.ts"
+      "types": "./dist/types/kdf.d.ts",
+      "import": "./dist/esm/kdf.js"
     },
     "./keystore": {
-      "import": "./dist/esm/keystore.js",
-      "types": "./dist/types/keystore.d.ts"
+      "types": "./dist/types/keystore.d.ts",
+      "import": "./dist/esm/keystore.js"
     },
     "./stream": {
-      "import": "./dist/esm/stream.js",
-      "types": "./dist/types/stream.d.ts"
+      "types": "./dist/types/stream.d.ts",
+      "import": "./dist/esm/stream.js"
     },
     "./audit": {
-      "import": "./dist/esm/audit.js",
-      "types": "./dist/types/audit.d.ts"
+      "types": "./dist/types/audit.d.ts",
+      "import": "./dist/esm/audit.js"
     },
-    "./hardware": {
-      "import": "./dist/esm/hardware.js",
-      "types": "./dist/types/hardware.d.ts"
-    },
-    "./wasm": {
-      "import": "./dist/wasm/lombokencryptdecrypt.js",
-      "types": "./dist/wasm/lombokencryptdecrypt.d.ts"
-    },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./legacy": {
+      "types": "./dist/types/legacy.d.ts",
+      "import": "./dist/esm/legacy.js"
+    }
   },
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/esm/index.js",
@@ -99,21 +125,21 @@
     "SECURITY.md"
   ],
   "scripts": {
-    "build": "npm run build:ts && npm run build:cjs && npm run build:wasm",
+    "build": "npm run build:ts && npm run build:cjs",
     "build:ts": "tsc -p tsconfig.build.json",
     "build:cjs": "tsx scripts/bundle-cjs.ts",
     "build:wasm": "cd src-rust && wasm-pack build --target web --out-dir ../dist/wasm",
     "build:native": "cargo build --release && napi build --platform --release",
     "clean": "rm -rf dist/",
     "dev": "tsc -p tsconfig.json --watch",
-    "test": "jest --runInBand",
-    "test:vectors": "jest tests/vectors --runInBand",
-    "test:integration": "jest tests/integration --runInBand",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "test:vectors": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/vectors --runInBand",
+    "test:integration": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/integration --runInBand",
     "test:fuzz": "node scripts/run-fuzz.mjs",
     "test:dudect": "node scripts/run-dudect.mjs",
     "lint": "eslint src/ tests/ --max-warnings 0",
     "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts'",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "bench": "tsx benches/bench_aes_gcm.ts",
     "bench:all": "tsx scripts/run-all-benches.ts",
     "audit:npm": "npm audit --audit-level=moderate",
@@ -122,11 +148,6 @@
     "release": "release-please release-pr",
     "docs:api": "typedoc src/index.ts --out docs/api"
   },
-  "dependencies": {
-    "lombokalgoritma": "^0.1.0",
-    "lombokvector": "^0.1.0",
-    "lombokecc": "^0.1.0"
-  },
   "optionalDependencies": {
     "lombokqrcode": "^0.2.0",
     "lomboksimhash": "^0.1.0"
@@ -134,16 +155,16 @@
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "@typescript-eslint/parser": "^8.8.0",
     "eslint": "^9.0.0",
     "jest": "^29.7.0",
     "prettier": "^3.3.2",
     "release-please": "^16.10.0",
     "ts-jest": "^29.1.5",
     "tsx": "^4.15.7",
-    "typedoc": "^0.25.13",
-    "typescript": "^5.5.2",
-    "@typescript-eslint/eslint-plugin": "^7.15.0",
-    "@typescript-eslint/parser": "^7.15.0"
+    "typedoc": "^0.26.11",
+    "typescript": "~5.6.3"
   },
   "engines": {
     "node": ">=18.0.0"

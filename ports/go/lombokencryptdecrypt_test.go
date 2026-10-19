@@ -121,7 +121,7 @@ func TestAesGcmRejectsTamperedTag(t *testing.T) {
 func TestHmacSha256Rfc4231(t *testing.T) {
 	tests := []struct{ key, msg, want string }{
 		{"0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b", "4869205468657265", "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"},
-		{"4a656665", "7768617420646f2079612077616e7420666f72206e6f7468696e673f", "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964a74be6"},
+		{"4a656665", "7768617420646f2079612077616e7420666f72206e6f7468696e673f", "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"},
 	}
 	for _, tc := range tests {
 		key := fromHex(t, tc.key)
@@ -138,7 +138,7 @@ func TestHmacSha256Rfc4231(t *testing.T) {
 func TestSha256(t *testing.T) {
 	tests := []struct{ input, want string }{
 		{"", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
-		{"616263", "ba7816bf8f01cfea414140de5dae2ec73b00361bbef0469f490f67c94c0ca2b"},
+		{"616263", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"},
 	}
 	for _, tc := range tests {
 		data := fromHex(t, tc.input)

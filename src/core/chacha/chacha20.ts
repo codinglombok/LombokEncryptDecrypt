@@ -114,8 +114,8 @@ function poly1305Mac(key: Uint8Array, message: Uint8Array): Uint8Array {
   const s = key.slice(16, 32);
 
   // Clamp r
-  r[3]  &= 0x0f; r[7]  &= 0x0f; r[11] &= 0x0f; r[15] &= 0x0f;
-  r[4]  &= 0xfc; r[8]  &= 0xfc; r[12] &= 0xfc;
+  r[3]!  &= 0x0f; r[7]!  &= 0x0f; r[11]! &= 0x0f; r[15]! &= 0x0f;
+  r[4]!  &= 0xfc; r[8]!  &= 0xfc; r[12]! &= 0xfc;
 
   // 130-bit integer arithmetic using BigInt for correctness
   const rBig = bytesToBigIntLE(r) & 0x0ffffffc0ffffffc0ffffffc0fffffffn;
@@ -191,8 +191,8 @@ async function encryptNode(
   aad?: Uint8Array,
 ): Promise<AeadResult> {
   const { createCipheriv } = await import('node:crypto');
-  const cipher = createCipheriv('chacha20-poly1305', key, nonce, { authTagLength: 16 } as object);
-  if (aad) cipher.setAAD(aad);
+  const cipher = createCipheriv('chacha20-poly1305', key, nonce, { authTagLength: 16 });
+  if (aad) cipher.setAAD(aad, { plaintextLength: plaintext.length });
   const ct = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const tag = cipher.getAuthTag();
   return { ciphertext: new Uint8Array(ct), tag: new Uint8Array(tag), iv: nonce };
@@ -206,9 +206,9 @@ async function decryptNode(
   aad?: Uint8Array,
 ): Promise<Uint8Array> {
   const { createDecipheriv } = await import('node:crypto');
-  const decipher = createDecipheriv('chacha20-poly1305', key, nonce, { authTagLength: 16 } as object);
+  const decipher = createDecipheriv('chacha20-poly1305', key, nonce, { authTagLength: 16 });
   decipher.setAuthTag(tag);
-  if (aad) decipher.setAAD(aad);
+  if (aad) decipher.setAAD(aad, { plaintextLength: ciphertext.length });
   try {
     return new Uint8Array(Buffer.concat([decipher.update(ciphertext), decipher.final()]));
   } catch {
@@ -323,3 +323,6 @@ export const chaCha20Poly1305 = {
 
 // Export internal for XChaCha20
 export { chacha20Block, chacha20Crypt, poly1305Mac, poly1305KeyGen, constructAeadMsg };
+
+/** @internal exposed for conformance tests */
+export { encryptPure as chachaEncryptPure, decryptPure as chachaDecryptPure };

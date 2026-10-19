@@ -20,7 +20,7 @@ const HMAC_SHA256_VECTORS = [
     id: 'rfc4231-tc2',
     key:     '4a656665',
     message: '7768617420646f2079612077616e7420666f72206e6f7468696e673f',
-    output:  '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964a74be6',
+    output:  '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843',
   },
   {
     id: 'rfc4231-tc3',

@@ -4,11 +4,11 @@
  * @module kdf/pbkdf2
  */
 
-import type { Pbkdf2Options } from '../../types.js';
-import { HAS_SUBTLE_CRYPTO, HAS_NODE_CRYPTO, PLATFORM } from '../../platform/detect.js';
-import { randomSalt } from '../../utils/random.js';
-import { stringToBytes } from '../../utils/encoding.js';
-import { timingSafeEqual } from '../../utils/timing.js';
+import type { Pbkdf2Options } from '../types.js';
+import { HAS_SUBTLE_CRYPTO, HAS_NODE_CRYPTO, PLATFORM } from '../platform/detect.js';
+import { randomSalt } from '../utils/random.js';
+import { stringToBytes } from '../utils/encoding.js';
+import { timingSafeEqual } from '../utils/timing.js';
 
 const DEFAULT_SALT_LEN = 16;
 const DEFAULT_DK_LEN   = 32;
@@ -59,7 +59,7 @@ async function pbkdf2Native(
 }
 
 // PHC-like format: $pbkdf2-sha256$i=<iter>$<salt_b64>$<hash_b64>
-import { bytesToBase64Url, base64ToBytes } from '../../utils/encoding.js';
+import { bytesToBase64Url, base64ToBytes } from '../utils/encoding.js';
 
 function encodePbkdf2Hash(hash: 'SHA-256'|'SHA-512', iterations: number, salt: Uint8Array, dk: Uint8Array): string {
   const id = hash === 'SHA-256' ? 'pbkdf2-sha256' : 'pbkdf2-sha512';

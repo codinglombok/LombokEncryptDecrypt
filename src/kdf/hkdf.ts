@@ -4,9 +4,10 @@
  * @module kdf/hkdf
  */
 
-import type { HkdfOptions } from '../../types.js';
-import { HAS_SUBTLE_CRYPTO, HAS_NODE_CRYPTO, PLATFORM } from '../../platform/detect.js';
-import { concatBytes } from '../../utils/encoding.js';
+import { LombokCryptoError, ErrorCode } from '../errors.js';
+import type { HkdfOptions } from '../types.js';
+import { HAS_SUBTLE_CRYPTO, HAS_NODE_CRYPTO, PLATFORM } from '../platform/detect.js';
+import { concatBytes } from '../utils/encoding.js';
 
 const MAX_OUTPUT_BYTES: Record<string, number> = {
   'SHA-256': 32 * 255,
@@ -35,8 +36,8 @@ async function hmac(hash: string, key: Uint8Array, data: Uint8Array): Promise<Ui
     return new Uint8Array(createHmac(nodeHash, key).update(data).digest());
   }
   // LombokAlgoritma math fallback
-  const { hmac: hmacMath } = await import('lombokalgoritma/math');
-  return hmacMath(hash, key, data);
+  throw new LombokCryptoError(ErrorCode.UNSUPPORTED_ALGORITHM,
+    'HKDF requires WebCrypto or node:crypto; no pure-TS fallback in v0.1.0', { algorithm: `HKDF-${hash}` });
 }
 
 // ── HKDF Extract ──────────────────────────────────────────────────────────

@@ -172,9 +172,7 @@ function subShiftNoMix(a: number, b: number, c: number, d: number): number {
   ) >>> 0;
 }
 
-// ── Public AES ECB interface ──────────────────────────────────────────────
-
-// ── Inverse cipher (FIPS 197 §5.3) ────────────────────────────────────────
+// ── Block decryption (FIPS 197 §5.3, straightforward inverse cipher) ──────
 
 const INV_SBOX = new Uint8Array(256);
 for (let i = 0; i < 256; i++) INV_SBOX[SBOX[i]!] = i;
@@ -183,61 +181,56 @@ function gmul(a: number, b: number): number {
   let p = 0;
   for (let i = 0; i < 8; i++) {
     if (b & 1) p ^= a;
-    const hi = a & 0x80;
-    a = (a << 1) & 0xff;
-    if (hi) a ^= 0x1b;
+    a = xtime(a);
     b >>= 1;
   }
-  return p;
+  return p & 0xff;
 }
 
-const MUL9 = new Uint8Array(256);
-const MUL11 = new Uint8Array(256);
-const MUL13 = new Uint8Array(256);
-const MUL14 = new Uint8Array(256);
-for (let i = 0; i < 256; i++) {
-  MUL9[i] = gmul(i, 9); MUL11[i] = gmul(i, 11); MUL13[i] = gmul(i, 13); MUL14[i] = gmul(i, 14);
-}
-
-/** AES block decrypt (16 bytes) with the round keys from {@link expandKey}. Pure TS. */
+/** Decrypt one 16-byte block using round keys from {@link expandKey}. */
 export function aesDecryptBlock(block: Uint8Array, roundKeys: Uint32Array): Uint8Array {
   if (block.length !== 16) {
-    throw new LombokCryptoError(ErrorCode.INVALID_INPUT, `AES block must be 16 bytes; got ${block.length}`, { algorithm: 'AES' });
+    throw new LombokCryptoError(ErrorCode.INVALID_INPUT, 'AES block must be 16 bytes');
   }
   const nr = roundKeys.length / 4 - 1;
-  const s = new Uint8Array(16);
+  const st = new Uint8Array(block);
   const addRoundKey = (round: number): void => {
     for (let c = 0; c < 4; c++) {
       const w = roundKeys[round * 4 + c]!;
-      s[c * 4] = s[c * 4]! ^ (w >>> 24);
-      s[c * 4 + 1] = s[c * 4 + 1]! ^ ((w >>> 16) & 0xff);
-      s[c * 4 + 2] = s[c * 4 + 2]! ^ ((w >>> 8) & 0xff);
-      s[c * 4 + 3] = s[c * 4 + 3]! ^ (w & 0xff);
+      st[c * 4] = st[c * 4]! ^ ((w >>> 24) & 0xff);
+      st[c * 4 + 1] = st[c * 4 + 1]! ^ ((w >>> 16) & 0xff);
+      st[c * 4 + 2] = st[c * 4 + 2]! ^ ((w >>> 8) & 0xff);
+      st[c * 4 + 3] = st[c * 4 + 3]! ^ (w & 0xff);
     }
   };
   const invShiftSub = (): void => {
-    const t = Uint8Array.from(s);
+    const t = new Uint8Array(16);
     for (let c = 0; c < 4; c++) {
-      for (let r = 0; r < 4; r++) s[((c + r) % 4) * 4 + r] = INV_SBOX[t[c * 4 + r]!]!;
+      for (let r = 0; r < 4; r++) t[((c + r) % 4) * 4 + r] = INV_SBOX[st[c * 4 + r]!]!;
+    }
+    st.set(t);
+  };
+  const invMix = (): void => {
+    for (let c = 0; c < 4; c++) {
+      const a0 = st[c * 4]!, a1 = st[c * 4 + 1]!, a2 = st[c * 4 + 2]!, a3 = st[c * 4 + 3]!;
+      st[c * 4]     = gmul(a0, 14) ^ gmul(a1, 11) ^ gmul(a2, 13) ^ gmul(a3, 9);
+      st[c * 4 + 1] = gmul(a0, 9) ^ gmul(a1, 14) ^ gmul(a2, 11) ^ gmul(a3, 13);
+      st[c * 4 + 2] = gmul(a0, 13) ^ gmul(a1, 9) ^ gmul(a2, 14) ^ gmul(a3, 11);
+      st[c * 4 + 3] = gmul(a0, 11) ^ gmul(a1, 13) ^ gmul(a2, 9) ^ gmul(a3, 14);
     }
   };
-  s.set(block);
   addRoundKey(nr);
   for (let round = nr - 1; round >= 1; round--) {
     invShiftSub();
     addRoundKey(round);
-    for (let c = 0; c < 4; c++) {
-      const a0 = s[c * 4]!, a1 = s[c * 4 + 1]!, a2 = s[c * 4 + 2]!, a3 = s[c * 4 + 3]!;
-      s[c * 4] = MUL14[a0]! ^ MUL11[a1]! ^ MUL13[a2]! ^ MUL9[a3]!;
-      s[c * 4 + 1] = MUL9[a0]! ^ MUL14[a1]! ^ MUL11[a2]! ^ MUL13[a3]!;
-      s[c * 4 + 2] = MUL13[a0]! ^ MUL9[a1]! ^ MUL14[a2]! ^ MUL11[a3]!;
-      s[c * 4 + 3] = MUL11[a0]! ^ MUL13[a1]! ^ MUL9[a2]! ^ MUL14[a3]!;
-    }
+    invMix();
   }
   invShiftSub();
   addRoundKey(0);
-  return s;
+  return st;
 }
+
+// ── Public AES ECB interface ──────────────────────────────────────────────
 
 export interface AesCore {
   readonly keyLength: 16 | 24 | 32;
