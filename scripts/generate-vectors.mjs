@@ -31,7 +31,7 @@ const vectors = {
     version: 1,
     library: 'LombokEncryptDecrypt',
     description: 'Cross-language test vectors. Expected values computed with OpenSSL via node:crypto.',
-    sources: ['NIST SP 800-38D', 'RFC 8439', 'RFC 8032', 'RFC 4231', 'RFC 5869', 'NIST FIPS 180-4', 'NIST FIPS 202'],
+    sources: ['NIST SP 800-38D', 'RFC 8439', 'RFC 8032', 'RFC 4231', 'RFC 5869', 'NIST FIPS 180-4', 'NIST FIPS 202', 'NIST SP 800-38A', 'RFC 1321'],
   },
 };
 
@@ -118,6 +118,59 @@ check('HMAC TC2', vectors.hmac_sha256[1].output, '5bdcc146bf60754e6a042426089575
   check('HKDF TC1', okm, '3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865');
   vectors.hkdf_sha256 = [{ id: 'hkdf-sha256-rfc5869-1', ikm, salt, info, length: 42, okm }];
 }
+
+// ── SHA-384 / SHA-512 / MD5 (legacy) ─────────────────────────────────────
+vectors.sha384 = [
+  hashVec('sha384', 'sha384-empty', Buffer.alloc(0)),
+  hashVec('sha384', 'sha384-abc', Buffer.from('abc')),
+];
+vectors.sha512 = [
+  hashVec('sha512', 'sha512-empty', Buffer.alloc(0)),
+  hashVec('sha512', 'sha512-abc', Buffer.from('abc')),
+  hashVec('sha512', 'sha512-896bit', Buffer.from('abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu')),
+];
+check('SHA-512("abc")', vectors.sha512[1].output.slice(0, 32), 'ddaf35a193617abacc417349ae204131');
+vectors.md5 = [
+  hashVec('md5', 'md5-empty', Buffer.alloc(0)),
+  hashVec('md5', 'md5-abc', Buffer.from('abc')),
+];
+check('MD5("abc")', vectors.md5[1].output, '900150983cd24fb0d6963f7d28e17f72');
+
+// ── AES-CBC / AES-ECB (NIST SP 800-38A F.1/F.2 inputs) ───────────────────
+const sp38aPt = '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e51';
+const sp38aKey = '2b7e151628aed2a6abf7158809cf4f3c';
+const sp38aIv = '000102030405060708090a0b0c0d0e0f';
+function cbc(id, keyHex, ivHex, ptHex, padding) {
+  const c = createCipheriv(`aes-${keyHex.length * 4}-cbc`, fromHex(keyHex), fromHex(ivHex));
+  c.setAutoPadding(padding === 'pkcs7');
+  return { id, key: keyHex, iv: ivHex, padding, plaintext: ptHex, ciphertext: hex(Buffer.concat([c.update(fromHex(ptHex)), c.final()])) };
+}
+function ecb(id, keyHex, ptHex, padding) {
+  const c = createCipheriv(`aes-${keyHex.length * 4}-ecb`, fromHex(keyHex), null);
+  c.setAutoPadding(padding === 'pkcs7');
+  return { id, key: keyHex, padding, plaintext: ptHex, ciphertext: hex(Buffer.concat([c.update(fromHex(ptHex)), c.final()])) };
+}
+vectors.aes_cbc = [
+  cbc('aes-128-cbc-sp800-38a', sp38aKey, sp38aIv, sp38aPt, 'none'),
+  cbc('aes-128-cbc-pkcs7', sp38aKey, sp38aIv, '00112233445566778899', 'pkcs7'),
+  cbc('aes-256-cbc-pkcs7-empty', '603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4', sp38aIv, '', 'pkcs7'),
+];
+check('AES-128-CBC block 1 (SP 800-38A F.2.1)', vectors.aes_cbc[0].ciphertext.slice(0, 32), '7649abac8119b246cee98e9b12e9197d');
+vectors.aes_ecb = [
+  ecb('aes-128-ecb-sp800-38a', sp38aKey, sp38aPt, 'none'),
+  ecb('aes-128-ecb-pkcs7', sp38aKey, '00112233445566778899', 'pkcs7'),
+];
+check('AES-128-ECB block 1 (SP 800-38A F.1.1)', vectors.aes_ecb[0].ciphertext.slice(0, 32), '3ad77bb40d7a3660a89ecaf32466ef97');
+
+// ── RC4 (legacy) ─────────────────────────────────────────────────────────
+// This OpenSSL build has no RC4 (legacy provider), so these are the widely published
+// RC4 examples (Wikipedia / RFC 6229-style known answers), not computed here.
+const rc4known = [
+  ['rc4-key-plaintext', 'Key', 'Plaintext', 'bbf316e8d940af0ad3'],
+  ['rc4-wiki-pedia', 'Wiki', 'pedia', '1021bf0420'],
+  ['rc4-secret-attack', 'Secret', 'Attack at dawn', '45a01f645fc35b383552544b9bf5'],
+];
+vectors.rc4 = rc4known.map(([id, k, pt, ct]) => ({ id, source: 'published example', key: hex(Buffer.from(k)), plaintext: hex(Buffer.from(pt)), ciphertext: ct }));
 
 writeFileSync(OUT, JSON.stringify(vectors, null, 2) + '\n', 'utf8');
 console.log(`wrote ${OUT}`);

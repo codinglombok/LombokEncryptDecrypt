@@ -54,6 +54,7 @@ export * from './kdf.js';
 export * from './keystore.js';
 export * from './stream.js';
 export * from './audit.js';
+export * as legacy from './legacy.js';
 export { envelopeEncrypt } from './hybrid/envelope.js';
 
 // ── NOT exported yet ──────────────────────────────────────────────────────

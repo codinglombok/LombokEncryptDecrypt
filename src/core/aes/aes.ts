@@ -172,12 +172,71 @@ function subShiftNoMix(a: number, b: number, c: number, d: number): number {
   ) >>> 0;
 }
 
+// ── Block decryption (FIPS 197 §5.3, straightforward inverse cipher) ──────
+
+const INV_SBOX = new Uint8Array(256);
+for (let i = 0; i < 256; i++) INV_SBOX[SBOX[i]!] = i;
+
+function gmul(a: number, b: number): number {
+  let p = 0;
+  for (let i = 0; i < 8; i++) {
+    if (b & 1) p ^= a;
+    a = xtime(a);
+    b >>= 1;
+  }
+  return p & 0xff;
+}
+
+/** Decrypt one 16-byte block using round keys from {@link expandKey}. */
+export function aesDecryptBlock(block: Uint8Array, roundKeys: Uint32Array): Uint8Array {
+  if (block.length !== 16) {
+    throw new LombokCryptoError(ErrorCode.INVALID_INPUT, 'AES block must be 16 bytes');
+  }
+  const nr = roundKeys.length / 4 - 1;
+  const st = new Uint8Array(block);
+  const addRoundKey = (round: number): void => {
+    for (let c = 0; c < 4; c++) {
+      const w = roundKeys[round * 4 + c]!;
+      st[c * 4] = st[c * 4]! ^ ((w >>> 24) & 0xff);
+      st[c * 4 + 1] = st[c * 4 + 1]! ^ ((w >>> 16) & 0xff);
+      st[c * 4 + 2] = st[c * 4 + 2]! ^ ((w >>> 8) & 0xff);
+      st[c * 4 + 3] = st[c * 4 + 3]! ^ (w & 0xff);
+    }
+  };
+  const invShiftSub = (): void => {
+    const t = new Uint8Array(16);
+    for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < 4; r++) t[((c + r) % 4) * 4 + r] = INV_SBOX[st[c * 4 + r]!]!;
+    }
+    st.set(t);
+  };
+  const invMix = (): void => {
+    for (let c = 0; c < 4; c++) {
+      const a0 = st[c * 4]!, a1 = st[c * 4 + 1]!, a2 = st[c * 4 + 2]!, a3 = st[c * 4 + 3]!;
+      st[c * 4]     = gmul(a0, 14) ^ gmul(a1, 11) ^ gmul(a2, 13) ^ gmul(a3, 9);
+      st[c * 4 + 1] = gmul(a0, 9) ^ gmul(a1, 14) ^ gmul(a2, 11) ^ gmul(a3, 13);
+      st[c * 4 + 2] = gmul(a0, 13) ^ gmul(a1, 9) ^ gmul(a2, 14) ^ gmul(a3, 11);
+      st[c * 4 + 3] = gmul(a0, 11) ^ gmul(a1, 13) ^ gmul(a2, 9) ^ gmul(a3, 14);
+    }
+  };
+  addRoundKey(nr);
+  for (let round = nr - 1; round >= 1; round--) {
+    invShiftSub();
+    addRoundKey(round);
+    invMix();
+  }
+  invShiftSub();
+  addRoundKey(0);
+  return st;
+}
+
 // ── Public AES ECB interface ──────────────────────────────────────────────
 
 export interface AesCore {
   readonly keyLength: 16 | 24 | 32;
   readonly rounds: 10 | 12 | 14;
   encryptBlock(block: Uint8Array): Uint8Array;
+  decryptBlock(block: Uint8Array): Uint8Array;
 }
 
 export function createAes(key: Uint8Array): AesCore {
@@ -188,5 +247,6 @@ export function createAes(key: Uint8Array): AesCore {
     keyLength: keyLen,
     rounds,
     encryptBlock: (block: Uint8Array) => aesEncryptBlock(block, roundKeys),
+    decryptBlock: (block: Uint8Array) => aesDecryptBlock(block, roundKeys),
   };
 }

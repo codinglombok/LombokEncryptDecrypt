@@ -106,7 +106,11 @@
       "types": "./dist/types/audit.d.ts",
       "import": "./dist/esm/audit.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./legacy": {
+      "types": "./dist/types/legacy.d.ts",
+      "import": "./dist/esm/legacy.js"
+    }
   },
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/esm/index.js",

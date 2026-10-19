@@ -7,13 +7,14 @@ Source of truth for what works. Anything not marked **Verified** must not be rel
 | Area | Items |
 |---|---|
 | AEAD | AES-128/192/256-GCM, ChaCha20-Poly1305, XChaCha20-Poly1305 |
-| Block / modes | AES block, AES-XTS, SM4 block |
-| Hash | SHA-224/256, SHA3-224/256/384/512, SHAKE128/256, SM3 |
+| Block / modes | AES block (enc+dec), AES-CBC (PKCS#7), AES-XTS, SM4 block |
+| Hash | SHA-224/256/384/512, SHA3-224/256/384/512, SHAKE128/256, SM3 |
 | MAC | HMAC-SHA256/384/512, CMAC-AES-128/256 |
 | KDF | HKDF, PBKDF2, scrypt (RFC 7914 vectors) |
 | Asymmetric | Ed25519, ECDH (P-256/384/521, X25519, X448) — via platform crypto (node:crypto / WebCrypto) |
 | Streaming | Authenticated chunked AEAD (ordered, truncation-detecting) |
 | KeyStore | v2 format: scrypt → HKDF → AES-GCM per entry + HMAC trailer |
+| Legacy (`legacy` namespace, old formats only) | MD5, RC4, AES-ECB |
 | Audit | `AuditLogger` (no Reed-Solomon parity yet) |
 
 ## Fail closed (source exists, throws `UNSUPPORTED_ALGORITHM`, NOT exported)

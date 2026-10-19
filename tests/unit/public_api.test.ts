@@ -3,7 +3,7 @@ import * as api from '../../src/index.js';
 describe('public API (src/index.ts)', () => {
   it('exports the implemented primitives', () => {
     for (const name of ['aesGcm', 'chaCha20Poly1305', 'xchaChaPoly1305', 'sha256', 'sha3_256', 'hmacSha256',
-      'hkdf', 'pbkdf2', 'scrypt', 'cmacAes128', 'ed25519', 'KeyStore', 'createEncryptStream', 'AuditLogger']) {
+      'hkdf', 'pbkdf2', 'scrypt', 'cmacAes128', 'ed25519', 'KeyStore', 'createEncryptStream', 'AuditLogger', 'aesCbc', 'sha384', 'sha512', 'legacy']) {
       expect((api as Record<string, unknown>)[name]).toBeDefined();
     }
   });
