@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   publish-cpan:
+    if: ${{ hashFiles('ports/perl/**') != '' }}
     name: Publish to CPAN via PAUSE
     runs-on: ubuntu-latest
     steps:

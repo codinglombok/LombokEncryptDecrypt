@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "lombokencryptdecrypt": "./src/index.ts",
+    "lombokencryptdecrypt/symmetric": "./src/symmetric/index.ts",
+    "lombokencryptdecrypt/asymmetric": "./src/asymmetric/index.ts",
+    "lombokencryptdecrypt/hash": "./src/hash/index.ts",
+    "lombokencryptdecrypt/mac": "./src/mac/index.ts",
+    "lombokencryptdecrypt/kdf": "./src/kdf/index.ts",
+    "lombokencryptdecrypt/keystore": "./src/keystore/index.ts",
+    "lombokencryptdecrypt/stream": "./src/stream/index.ts",
+    "lombokencryptdecrypt/audit": "./src/audit/index.ts"
+  }
+}

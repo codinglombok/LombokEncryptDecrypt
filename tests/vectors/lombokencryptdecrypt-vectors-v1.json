@@ -1,239 +1,56 @@
 {
-  "_meta": {
+  "meta": {
+    "name": "lombokencryptdecrypt-vectors-v1",
     "version": 1,
-    "library": "LombokEncryptDecrypt",
-    "description": "Cross-language test vectors. Expected values computed with OpenSSL via node:crypto.",
-    "sources": [
-      "NIST SP 800-38D",
-      "RFC 8439",
-      "RFC 8032",
-      "RFC 4231",
-      "RFC 5869",
-      "NIST FIPS 180-4",
-      "NIST FIPS 202",
-      "NIST SP 800-38A",
-      "RFC 1321"
-    ]
+    "generatedFrom": "TypeScript reference implementation v0.1.0",
+    "note": "All inputs are fixed constants — outputs must be byte-identical in every language port."
   },
-  "aes_gcm": [
-    {
-      "id": "aes-gcm-256-aad",
-      "algorithm": "AES-256-GCM",
-      "key": "feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308",
-      "iv": "cafebabefacedbaddecaf888",
-      "aad": "feedfacedeadbeeffeedfacedeadbeefabaddad2",
-      "plaintext": "d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39",
-      "ciphertext": "522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f662",
-      "tag": "76fc6ece0f4e1768cddf8853bb2d551b"
-    },
-    {
-      "id": "aes-gcm-128-empty",
-      "algorithm": "AES-128-GCM",
-      "key": "00000000000000000000000000000000",
-      "iv": "000000000000000000000000",
-      "aad": "",
-      "plaintext": "",
-      "ciphertext": "",
-      "tag": "58e2fccefa7e3061367f1d57a4e7455a"
-    },
-    {
-      "id": "aes-gcm-192-no-aad",
-      "algorithm": "AES-192-GCM",
-      "key": "feffe9928665731c6d6a8f9467308308feffe9928665731c",
-      "iv": "cafebabefacedbaddecaf888",
-      "aad": "",
-      "plaintext": "d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a72",
-      "ciphertext": "3980ca0b3c00e841eb06fac4872a2757859e1ceaa6efd984628593b40ca1e19c",
-      "tag": "e92b64660f7b18621181c2d8ebb3ac08"
-    }
-  ],
-  "chacha20_poly1305": [
-    {
-      "id": "chacha20-poly1305-rfc8439-1",
-      "source": "RFC 8439 Section 2.8.2",
-      "key": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
-      "nonce": "070000004041424344454647",
-      "aad": "50515253c0c1c2c3c4c5c6c7",
-      "pt": "4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e",
-      "ct": "d31a8d34648e60db7b86afbc53ef7ec2a4aded51296e08fea9e2b5a736ee62d63dbea45e8ca9671282fafb69da92728b1a71de0a9e060b2905d6a5b67ecd3b3692ddbd7f2d778b8c9803aee328091b58fab324e4fad675945585808b4831d7bc3ff4def08e4b7a9de576d26586cec64b6116",
-      "tag": "1ae10b594f09e26a7e902ecbd0600691"
-    }
-  ],
-  "sha256": [
-    {
-      "id": "sha256-empty",
-      "input": "",
-      "output": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "id": "sha256-abc",
-      "input": "616263",
-      "output": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-    },
-    {
-      "id": "sha256-448bit",
-      "input": "6162636462636465636465666465666765666768666768696768696a68696a6b696a6b6c6a6b6c6d6b6c6d6e6c6d6e6f6d6e6f706e6f7071",
-      "output": "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
-    }
-  ],
-  "sha3_256": [
-    {
-      "id": "sha3-256-empty",
-      "input": "",
-      "output": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"
-    },
-    {
-      "id": "sha3-256-abc",
-      "input": "616263",
-      "output": "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532"
-    }
-  ],
-  "ed25519": [
-    {
-      "id": "ed25519-rfc8032-1",
-      "source": "RFC 8032 Section 7.1",
-      "private_key": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
-      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
-      "message": "",
-      "signature": "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b"
-    },
-    {
-      "id": "ed25519-rfc8032-2",
-      "source": "RFC 8032 Section 7.1",
-      "private_key": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb",
-      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
-      "message": "72",
-      "signature": "92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00"
-    }
-  ],
-  "hmac_sha256": [
-    {
-      "id": "hmac-sha256-rfc4231-tc1",
-      "key": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
-      "message": "4869205468657265",
-      "output": "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
-    },
-    {
-      "id": "hmac-sha256-rfc4231-tc2",
-      "key": "4a656665",
-      "message": "7768617420646f2079612077616e7420666f72206e6f7468696e673f",
-      "output": "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
-    }
-  ],
-  "hkdf_sha256": [
-    {
-      "id": "hkdf-sha256-rfc5869-1",
-      "ikm": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
-      "salt": "000102030405060708090a0b0c",
-      "info": "f0f1f2f3f4f5f6f7f8f9",
-      "length": 42,
-      "okm": "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"
-    }
-  ],
-  "sha384": [
-    {
-      "id": "sha384-empty",
-      "input": "",
-      "output": "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b"
-    },
-    {
-      "id": "sha384-abc",
-      "input": "616263",
-      "output": "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7"
-    }
-  ],
-  "sha512": [
-    {
-      "id": "sha512-empty",
-      "input": "",
-      "output": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
-    },
-    {
-      "id": "sha512-abc",
-      "input": "616263",
-      "output": "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"
-    },
-    {
-      "id": "sha512-896bit",
-      "input": "61626364656667686263646566676869636465666768696a6465666768696a6b65666768696a6b6c666768696a6b6c6d6768696a6b6c6d6e68696a6b6c6d6e6f696a6b6c6d6e6f706a6b6c6d6e6f70716b6c6d6e6f7071726c6d6e6f707172736d6e6f70717273746e6f707172737475",
-      "output": "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018501d289e4900f7e4331b99dec4b5433ac7d329eeb6dd26545e96e55b874be909"
-    }
-  ],
-  "md5": [
-    {
-      "id": "md5-empty",
-      "input": "",
-      "output": "d41d8cd98f00b204e9800998ecf8427e"
-    },
-    {
-      "id": "md5-abc",
-      "input": "616263",
-      "output": "900150983cd24fb0d6963f7d28e17f72"
-    }
-  ],
-  "aes_cbc": [
-    {
-      "id": "aes-128-cbc-sp800-38a",
-      "key": "2b7e151628aed2a6abf7158809cf4f3c",
-      "iv": "000102030405060708090a0b0c0d0e0f",
-      "padding": "none",
-      "plaintext": "6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e51",
-      "ciphertext": "7649abac8119b246cee98e9b12e9197d5086cb9b507219ee95db113a917678b2"
-    },
-    {
-      "id": "aes-128-cbc-pkcs7",
-      "key": "2b7e151628aed2a6abf7158809cf4f3c",
-      "iv": "000102030405060708090a0b0c0d0e0f",
-      "padding": "pkcs7",
-      "plaintext": "00112233445566778899",
-      "ciphertext": "78cc7dc942646b5f677a28b97bc0c23c"
-    },
-    {
-      "id": "aes-256-cbc-pkcs7-empty",
-      "key": "603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4",
-      "iv": "000102030405060708090a0b0c0d0e0f",
-      "padding": "pkcs7",
-      "plaintext": "",
-      "ciphertext": "7e9248e5d829ca7593f0c549db2f5b8c"
-    }
-  ],
-  "aes_ecb": [
-    {
-      "id": "aes-128-ecb-sp800-38a",
-      "key": "2b7e151628aed2a6abf7158809cf4f3c",
-      "padding": "none",
-      "plaintext": "6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e51",
-      "ciphertext": "3ad77bb40d7a3660a89ecaf32466ef97f5d3d58503b9699de785895a96fdbaaf"
-    },
-    {
-      "id": "aes-128-ecb-pkcs7",
-      "key": "2b7e151628aed2a6abf7158809cf4f3c",
-      "padding": "pkcs7",
-      "plaintext": "00112233445566778899",
-      "ciphertext": "28a44c31509f3c8fd1a420c0612d4ad0"
-    }
-  ],
-  "rc4": [
-    {
-      "id": "rc4-key-plaintext",
-      "source": "published example",
-      "key": "4b6579",
-      "plaintext": "506c61696e74657874",
-      "ciphertext": "bbf316e8d940af0ad3"
-    },
-    {
-      "id": "rc4-wiki-pedia",
-      "source": "published example",
-      "key": "57696b69",
-      "plaintext": "7065646961",
-      "ciphertext": "1021bf0420"
-    },
-    {
-      "id": "rc4-secret-attack",
-      "source": "published example",
-      "key": "536563726574",
-      "plaintext": "41747461636b206174206461776e",
-      "ciphertext": "45a01f645fc35b383552544b9bf5"
-    }
-  ]
+  "sha256": "e63a71ddaac5922cb08fc5cb26a8c5daaabdb909341ee317211e5ae3102fa5a4",
+  "sha224": "60b6e1d358360364ff8efdf0f6903bcaa310fe972dcc8b6fb7db4e25",
+  "sha384": "e1b452a420d61c191932ee8ec154c3a63d579fdf729923e2bb01ad6135617bd653ca26ffc230bd0049a637c1a905576d",
+  "sha512": "2ea246f0db6d503d9d3ef9fd52c8f89c2cf3a1ee8982ead91489aaf7cd809bfb2d8058fe31e76b37967baf34075ac388d93a10e82b360f7d1bcb3e76d1763ee9",
+  "sha3_224": "76ed8e3797bc7743a3bb49aba5a4f79f1666a5ee3f9ad04d4c86d0b2",
+  "sha3_256": "558c949d8242fa883f6c589ae9f257ea2939772856db29c7e69959d05aee37b1",
+  "sha3_384": "a0da59ea2c99eddd046f949c7d7a05194117b9be9419413691eb45ea15f03c9aeba7057bd914ab9fa2f6ecbc479eda9d",
+  "sha3_512": "76ea5729d901050e36a8d858f280e365240c5396e0363d2747ab6a2a04769d6360d38e6015d54cf60b83ea67fde99b5fd0709d16b8f1e6288c8e7339ea77c5da",
+  "shake128_64": "d97675e29509d00e9b9e412446aec4475f47ee3cd99be2a6ad78c2e5ddba066001756d223c73b6430d7bdb6e6db45e3daaba403ec65b0aeefb0e9fa95847366f",
+  "shake256_64": "c6371fdcab56b93eb58ef6caf601f5d34c94dd5ddf8d038afbfdf81334aea1b2800f7cb6043ac84ab8161be444c6dc3b9803a37020bda55c6b1d3572be8aeddf",
+  "sm3": "806d4fde52f390d4701cb4d2450e8a8e409871c992e953a0ea6b8b50133c924d",
+  "blake3": "7ad3aee426ab656f452ce8a942cdcbc057afd79dbbc0e7f121e387e68b272f90",
+  "blake3_keyed": "ba039446058ca4912fefe414bcdb936875aeb351e48578369c47259489479800",
+  "hmac_sha256": "a2ab91cece7e5479430d2d54bbff68a33106edbb630b7e51642e82681ddcff08",
+  "hmac_sha384": "d47983a76278041d67e6b0630f3ea0cf7356a729cfccaa62ff8e23879bbe1dc4f297ee74b3d6fe3f61e86c604f72d6b6",
+  "hmac_sha512": "6ef179316d01171b95182c68ab513b736d8cf6fd7dc607c4a8d2bfe86c307e5121e1d1ce87feeb141e87c31544a90f83cfef921bb17902f0c9d24a8634decde2",
+  "cmac_aes128": "658c2613499637d2b2ef03887f834fc2",
+  "cmac_aes256": "c389a81d9eb34de19b3ee8fbb7ce0f74",
+  "hkdf_sha256_32": "a9a7bc523ed96f974ba203df0b33bb25e179d8624a69849e4aa9cf75d085126e",
+  "pbkdf2_sha256": "055a3cd27546df39a69fa947647c966ddb84e824b56d359945c3eec044e2b699",
+  "scrypt_n1024": "9b8d9409e55ecd5f63846ff9e84e4b94e7fb8089fe459914b98914021942a2bc",
+  "aes_256_gcm": {
+    "ciphertext": "2f63ba74e589ad76ef2efcab5369ec4de0a4e8478356331d560090e47a0c20c66463dadcd9a471ec1bd65f80edf45b59893c",
+    "tag": "f78bb5e5d87994881ec3c32cda4048fc",
+    "iv": "000102030405060708090a0b"
+  },
+  "chacha20_poly1305": {
+    "ciphertext": "e19a646f097bca2dd5ec54d37a9d9a43aa02dd942259c1d888f05aa412a5864889f358d3907bd2ec584056b500e7fc4219e1",
+    "tag": "842238d0f6f792004e339f673f352762",
+    "nonce": "000102030405060708090a0b"
+  },
+  "xchacha20_poly1305": {
+    "ciphertext": "bc58691ff08c167bed9bec9e4d1cf1b2f1c8c2b760743ffb045688246e6103e4738a764e23f7e76490c0d4216fa9a990fc0e",
+    "tag": "bc10a7eb41d667b62e61fb521f1ef21d",
+    "nonce": "404142434445464748494a4b4c4d4e4f5051525354555657"
+  },
+  "aes_256_cbc": {
+    "ciphertext": "f7a4c337d24549172cd77853a51478a128ef9ac4e141ebbd295cf50b200aa34b631eca05f74f463f47fa30ec2c75cd182fc184f8b2e9d05b708001ea15f26d24",
+    "iv": "000102030405060708090a0b0c0d0e0f"
+  },
+  "aes_128_xts": "3f62e577bcc02adc9d7411bac4fe123b010b049fd517fac99c42c45477c26444f4b4a30632cbcd385d21e1f71291ee451e638a189d01ebe715722091c8a286ce44d48ed6dc7a880fc848f2cc8e6e70ecf252f0b1be5a87bf74a5c120b067f784",
+  "sm4_ecb": "1a5e703aacf55cddf1198771f2fd791a",
+  "ed25519": {
+    "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+    "signature": "474aa25dc078836f9701949adb9be5f36bf83fa4cae2a09fedf1d645654562cb30d6c172efcb819e208f62ef76f5a556731f622755c100c23a08cc15e0d70202"
+  },
+  "x25519": "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742",
+  "envelope_roundtrip": true
 }

@@ -1,13 +1,14 @@
 {
   "name": "lombokencryptdecrypt",
   "version": "0.1.0",
-  "description": "Universal encrypt/decrypt library \u2014 AES/ChaCha20/Kyber/Dilithium/SPHINCS+/SM2/SM3/SM4/ZUC/SNOW3G/HSM/TPM \u2014 12 languages, post-quantum ready, Apache 2.0",
+  "description": "Encrypt/decrypt toolkit for TypeScript — pre-release. Pure-TS, zero runtime dependencies.",
+  "type": "module",
   "license": "Apache-2.0",
   "author": "codinglombok <codinglombok@gmail.com>",
-  "homepage": "https://github.com/codinglombok/LombokEncryptDecrypt#readme",
+  "homepage": "https://github.com/codinglombok/LombokEncryptDecrypt",
   "repository": {
     "type": "git",
-    "url": "https://github.com/codinglombok/LombokEncryptDecrypt.git"
+    "url": "git+https://github.com/codinglombok/LombokEncryptDecrypt.git"
   },
   "bugs": {
     "url": "https://github.com/codinglombok/LombokEncryptDecrypt/issues"
@@ -18,139 +19,84 @@
     "cryptography",
     "aes",
     "chacha20",
-    "sha256",
+    "aead",
+    "sha3",
     "blake3",
-    "post-quantum",
-    "kyber",
-    "dilithium",
-    "sphincs",
-    "falcon",
-    "ml-kem",
-    "ml-dsa",
-    "ecdh",
-    "ecdsa",
-    "ed25519",
-    "rsa",
-    "hkdf",
-    "argon2",
-    "pbkdf2",
-    "sm2",
     "sm3",
     "sm4",
-    "zuc",
-    "snow3g",
-    "5g",
-    "lte",
-    "hsm",
-    "pkcs11",
-    "tpm",
-    "sgx",
-    "secure-enclave",
-    "hpke",
-    "ecies",
-    "envelope-encryption",
-    "key-management",
-    "format-preserving-encryption",
-    "fpe",
-    "ff1",
-    "xts",
-    "audit-log",
-    "fips",
-    "nist",
-    "pqc",
-    "lombok",
-    "lombok-ecosystem",
-    "wasm",
-    "zero-dep",
-    "typescript",
-    "rust"
+    "ed25519",
+    "ecdh",
+    "hkdf",
+    "keystore",
+    "lombok"
   ],
-  "type": "module",
-  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.cjs",
-      "default": "./dist/esm/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./symmetric": {
-      "types": "./dist/types/symmetric.d.ts",
-      "import": "./dist/esm/symmetric.js"
+      "types": "./dist/symmetric/index.d.ts",
+      "import": "./dist/symmetric/index.js"
     },
     "./asymmetric": {
-      "types": "./dist/types/asymmetric.d.ts",
-      "import": "./dist/esm/asymmetric.js"
+      "types": "./dist/asymmetric/index.d.ts",
+      "import": "./dist/asymmetric/index.js"
     },
     "./hash": {
-      "types": "./dist/types/hash.d.ts",
-      "import": "./dist/esm/hash.js"
+      "types": "./dist/hash/index.d.ts",
+      "import": "./dist/hash/index.js"
     },
     "./mac": {
-      "types": "./dist/types/mac.d.ts",
-      "import": "./dist/esm/mac.js"
+      "types": "./dist/mac/index.d.ts",
+      "import": "./dist/mac/index.js"
     },
     "./kdf": {
-      "types": "./dist/types/kdf.d.ts",
-      "import": "./dist/esm/kdf.js"
+      "types": "./dist/kdf/index.d.ts",
+      "import": "./dist/kdf/index.js"
     },
     "./keystore": {
-      "types": "./dist/types/keystore.d.ts",
-      "import": "./dist/esm/keystore.js"
+      "types": "./dist/keystore/index.d.ts",
+      "import": "./dist/keystore/index.js"
     },
     "./stream": {
-      "types": "./dist/types/stream.d.ts",
-      "import": "./dist/esm/stream.js"
+      "types": "./dist/stream/index.d.ts",
+      "import": "./dist/stream/index.js"
     },
     "./audit": {
-      "types": "./dist/types/audit.d.ts",
-      "import": "./dist/esm/audit.js"
-    },
-    "./package.json": "./package.json",
-    "./legacy": {
-      "types": "./dist/types/legacy.d.ts",
-      "import": "./dist/esm/legacy.js"
+      "types": "./dist/audit/index.d.ts",
+      "import": "./dist/audit/index.js"
     }
   },
-  "main": "./dist/cjs/index.cjs",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/types/index.d.ts",
   "files": [
-    "dist/",
-    "src/",
-    "src-rust/",
-    "LICENSE",
+    "dist",
     "README.md",
     "CHANGELOG.md",
-    "SECURITY.md"
+    "LICENSE"
   ],
-  "scripts": {
-    "build": "npm run build:ts && npm run build:cjs",
-    "build:ts": "tsc -p tsconfig.build.json",
-    "build:cjs": "tsx scripts/bundle-cjs.ts",
-    "build:wasm": "cd src-rust && wasm-pack build --target web --out-dir ../dist/wasm",
-    "build:native": "cargo build --release && napi build --platform --release",
-    "clean": "rm -rf dist/",
-    "dev": "tsc -p tsconfig.json --watch",
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
-    "test:vectors": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/vectors --runInBand",
-    "test:integration": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/integration --runInBand",
-    "test:fuzz": "node scripts/run-fuzz.mjs",
-    "test:dudect": "node scripts/run-dudect.mjs",
-    "lint": "eslint src/ tests/ --max-warnings 0",
-    "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts'",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "bench": "tsx benches/bench_aes_gcm.ts",
-    "bench:all": "tsx scripts/run-all-benches.ts",
-    "audit:npm": "npm audit --audit-level=moderate",
-    "audit:cargo": "cargo audit",
-    "prepublishOnly": "npm run clean && npm run build && npm test",
-    "release": "release-please release-pr",
-    "docs:api": "typedoc src/index.ts --out docs/api"
+  "engines": {
+    "node": ">=18"
   },
-  "optionalDependencies": {
-    "lombokqrcode": "^0.2.0",
-    "lomboksimhash": "^0.1.0"
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts' 'benches/**/*.ts' 'scripts/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
+    "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:vectors": "jest tests/vectors",
+    "test:watch": "jest --watch",
+    "build": "npm run build:ts",
+    "build:ts": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"const fs=require('fs');for(const d of ['dist','coverage'])fs.rmSync(d,{recursive:true,force:true})\"",
+    "generate:vectors": "tsx scripts/generate-vectors.ts",
+    "bench": "tsx benches/bench_aes_gcm.ts",
+    "bench:all": "tsx benches/bench_aes_gcm.ts && tsx benches/bench_sha.ts && tsx benches/bench_streaming.ts && tsx benches/bench_ed25519.ts",
+    "docs": "typedoc src/index.ts",
+    "prepack": "npm run build:ts"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
@@ -165,12 +111,5 @@
     "tsx": "^4.15.7",
     "typedoc": "^0.26.11",
     "typescript": "~5.6.3"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
   }
 }

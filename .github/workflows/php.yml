@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   test:
+    if: ${{ hashFiles('ports/php/**/*.php') != '' }}
     name: Test — PHP ${{ matrix.php }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:

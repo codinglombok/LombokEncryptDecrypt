@@ -1,64 +1,108 @@
 /**
- * LombokEncryptDecrypt
- * Encrypt/decrypt toolkit for TypeScript (AEAD, hashes, MACs, KDFs, Ed25519, ECDH, KeyStore, streaming)
+ * LombokEncryptDecrypt — public API root.
  *
- * @version 0.1.0
- * @license Apache-2.0
- * @author codinglombok
- * @see https://github.com/codinglombok/LombokEncryptDecrypt
+ * v0.1.0 (pre-release). Argon2 and ML-KEM are intentionally NOT exported:
+ * they fail closed (see docs/IMPLEMENTATION_STATUS.md).
  */
 
-// ── Error classes ─────────────────────────────────────────────────────────
-export { LombokCryptoError, ErrorCode } from './errors.js';
+// Errors
+export { ErrorCode, LombokCryptoError } from './errors.js';
 
-// ── Types ─────────────────────────────────────────────────────────────────
-export type {
-  Bytes, HexString, Base64String, PemString,
-  SymmetricAlgorithm, HashAlgorithm, MacAlgorithm, KdfAlgorithm,
-  AsymmetricAlgorithm, PQCAlgorithm,
-  GlobalCryptoOptions,
-  AeadEncryptOptions, AeadDecryptOptions, AeadResult,
-  Argon2Options, ScryptOptions, Pbkdf2Options, HkdfOptions,
-  KeyPair, KEMKeyPair, KEMResult,
-  HpkeSuite, EnvelopeEncryptedKey,
-  StreamEncryptOptions, StreamDecryptOptions,
-  AuditLogEntry, Platform, PlatformCapabilities,
-} from './types.js';
-
-// ── Constants ─────────────────────────────────────────────────────────────
+// Platform
 export {
-  VERSION, LIBRARY_NAME,
-  KEY_SIZES, IV_SIZES, TAG_SIZES, HASH_SIZES, PQC_SIZES, KDF_DEFAULTS,
-  STREAM_CHUNK_SIZE,
-} from './constants.js';
+  PLATFORM,
+  getPlatformCapabilities,
+  getPlatformLabel,
+  type PlatformCapabilities,
+  type PlatformName,
+} from './platform/index.js';
 
-// ── Utilities ─────────────────────────────────────────────────────────────
-export { timingSafeEqual, zeroize, ctSelect } from './utils/timing.js';
-export { randomBytes, randomKey256, randomKey128, randomSalt } from './utils/random.js';
+// Symmetric
 export {
-  bytesToHex, hexToBytes,
-  bytesToBase64, bytesToBase64Url, base64ToBytes,
-  stringToBytes, bytesToString,
-  concatBytes, xorBytes,
+  aesGcm,
+  aesGcmEncrypt,
+  aesGcmDecrypt,
+  type AesGcmOptions,
+  type AeadEncryptResult,
+} from './modes/gcm.js';
+export {
+  chaCha20Poly1305,
+  xchaChaPoly1305,
+  type ChaChaPolyOptions,
+  type ChaChaEncryptResult,
+} from './modes/chacha.js';
+export { aesCbcEncrypt, aesCbcDecrypt, type AesCbcOptions } from './modes/cbc.js';
+export { aesXtsEncrypt, aesXtsDecrypt } from './modes/xts.js';
+export { sm4, sm4ExpandKey, sm4EncryptBlock, sm4DecryptBlock } from './core/sm/sm4.js';
+
+// Hash
+export { sha256, sha224, sha384, sha512 } from './core/sha/sha256.js';
+export { sha3_224, sha3_256, sha3_384, sha3_512, shake128, shake256 } from './core/sha/sha3.js';
+export { sm3, sm3Raw } from './core/sm/sm3.js';
+export { blake3 } from './core/blake3/blake3.js';
+
+// MAC
+export { hmacSha256, hmacSha384, hmacSha512, hmac } from './mac/hmac.js';
+export { cmac } from './mac/cmac.js';
+
+// KDF
+export { hkdf, hkdfDerive, type HkdfOptions } from './kdf/hkdf.js';
+export { pbkdf2, pbkdf2Derive, type Pbkdf2Options } from './kdf/pbkdf2.js';
+export { scryptDerive, type ScryptOptions } from './kdf/scrypt.js';
+
+// Asymmetric
+export { ed25519, type Ed25519KeyPair } from './core/ecc/ed25519.js';
+export { ecdsaP256, ecdsaP384, ecdsaP521, type EcdsaKeyPair } from './core/ecc/ecdh.js';
+export {
+  ecdh,
+  ecdhP256,
+  ecdhP384,
+  ecdhP521,
+  ecdhX25519,
+  ecdhX448,
+  type OkpKeyPair,
+} from './core/ecc/ecdh.js';
+
+// Protocols
+export { KeyStore, type KeyStoreCreateOptions } from './keystore/keystore.js';
+export {
+  envelopeEncrypt,
+  type EncryptedKey,
+  type EnvelopeEncryptResult,
+} from './envelope/envelope.js';
+export {
+  createEncryptStream,
+  createDecryptStream,
+  encryptStreamGen,
+  decryptStreamGen,
+  type EncryptStream,
+  type DecryptStream,
+  type StreamOptions,
+  type StreamAlgorithm,
+} from './stream/encrypt_stream.js';
+export { AuditLogger, type AuditEntry, type AuditInput } from './audit/audit.js';
+export { legacy } from './legacy/legacy.js';
+
+// Utilities
+export {
+  bytesToHex,
+  hexToBytes,
+  bytesToBase64,
+  base64ToBytes,
+  bytesToBase64Url,
+  base64UrlToBytes,
+  stringToBytes,
+  bytesToString,
+  concatBytes,
+  xorBytes,
+  timingSafeEqual,
+  zeroize,
 } from './utils/encoding.js';
-
-// ── Platform ──────────────────────────────────────────────────────────────
-export { getPlatformCapabilities, PLATFORM } from './platform/detect.js';
-
-// ── Implemented in v0.1.0 (see docs/IMPLEMENTATION_STATUS.md) ──────────────
-export * from './symmetric.js';
-export * from './asymmetric.js';
-export * from './hash.js';
-export * from './mac.js';
-export * from './kdf.js';
-export * from './keystore.js';
-export * from './stream.js';
-export * from './audit.js';
-export * as legacy from './legacy.js';
-export { envelopeEncrypt } from './hybrid/envelope.js';
-
-// ── NOT exported yet ──────────────────────────────────────────────────────
-// Argon2 (RFC 9106) and ML-KEM-768 have source files but no working backend in
-// v0.1.0 (they throw UNSUPPORTED_ALGORITHM), so they are deliberately not exported.
-// Planned: ECDSA, RSA, SM2, ML-DSA, SLH-DSA, FALCON, BLAKE2/BLAKE3, FF1/FF3-1, HPKE,
-// JWK/PEM/X.509, PKCS#11. Track progress in docs/IMPLEMENTATION_STATUS.md.
+export {
+  randomBytes,
+  randomKey128,
+  randomKey256,
+  randomSalt,
+  randomIv,
+  getRandomInto,
+} from './utils/random.js';

@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   test:
+    if: ${{ hashFiles('ports/python/**/*.py') != '' }}
     name: Test — Python ${{ matrix.python }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -29,6 +30,7 @@ jobs:
       - run: pytest ports/python/tests/ -v
 
   safety:
+    if: ${{ hashFiles('ports/python/**/*.py') != '' }}
     name: Python safety audit
     runs-on: ubuntu-latest
     steps:

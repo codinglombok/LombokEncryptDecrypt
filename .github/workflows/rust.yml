@@ -16,6 +16,7 @@ env:
 
 jobs:
   test:
+    if: ${{ hashFiles('src/**/*.rs') != '' }}
     name: Test — Rust ${{ matrix.toolchain }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -64,6 +65,7 @@ jobs:
           flags: rust
 
   wasm:
+    if: ${{ hashFiles('src/**/*.rs') != '' }}
     name: WASM build
     runs-on: ubuntu-latest
     steps:
@@ -76,6 +78,7 @@ jobs:
       - run: wasm-pack build --target web --out-dir dist/wasm --features wasm
 
   cross:
+    if: ${{ hashFiles('src/**/*.rs') != '' }}
     name: Cross-compile — ${{ matrix.target }}
     runs-on: ubuntu-latest
     strategy:
@@ -95,6 +98,7 @@ jobs:
         run: cross build --target ${{ matrix.target }} --no-default-features --features no_std,symmetric,hash
 
   audit:
+    if: ${{ hashFiles('src/**/*.rs') != '' }}
     name: Security Audit (cargo)
     runs-on: ubuntu-latest
     steps:
@@ -104,6 +108,7 @@ jobs:
       - run: cargo audit --deny warnings
 
   benchmark:
+    if: ${{ hashFiles('src/**/*.rs') != '' }}
     name: Benchmark (delta check)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'

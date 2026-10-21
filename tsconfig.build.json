@@ -1,11 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist/esm",
-    "declarationDir": "./dist/types",
-    "removeComments": false,
-    "sourceMap": true
+    "noEmit": false,
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "tests/**", "benches/**", "node_modules", "ports"]
+  "include": ["src/**/*.ts"]
 }

@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   publish-pypi:
+    if: ${{ hashFiles('ports/python/**/*.py') != '' }}
     name: Build wheels + publish to PyPI
     runs-on: ${{ matrix.os }}
     strategy:

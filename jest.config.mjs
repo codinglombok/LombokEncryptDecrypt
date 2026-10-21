@@ -1,8 +1,12 @@
 /** @type {import('jest').Config} */
 const config = {
-  preset: 'ts-jest/presets/default-esm',
+  // ts-jest in CommonJS mode: stable on every OS in the CI matrix (no
+  // --experimental-vm-modules requirement). Type checking is done by
+  // `npm run typecheck` (tsc --noEmit) in the lint job, so the transform
+  // runs in transpile-only mode for speed.
+  preset: 'ts-jest',
   testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'json', 'node'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
@@ -10,10 +14,11 @@ const config = {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
-        useESM: true,
+        transpileOnly: true,
         tsconfig: {
-          module: 'ESNext',
-          moduleResolution: 'bundler',
+          module: 'commonjs',
+          esModuleInterop: true,
+          target: 'ES2022',
         },
       },
     ],

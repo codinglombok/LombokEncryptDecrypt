@@ -30,6 +30,7 @@ jobs:
       - run: npm audit --audit-level=moderate
 
   cargo-audit:
+    if: ${{ hashFiles('**/Cargo.lock') != '' }}
     name: cargo audit
     runs-on: ubuntu-latest
     steps:
@@ -39,6 +40,7 @@ jobs:
       - run: cargo audit --deny warnings
 
   cargo-deny:
+    if: ${{ hashFiles('**/Cargo.lock') != '' }}
     name: cargo deny (license + advisories)
     runs-on: ubuntu-latest
     steps:
@@ -49,6 +51,7 @@ jobs:
           command: check
 
   python-safety:
+    if: ${{ hashFiles('pyproject.toml', 'ports/python/requirements*.txt') != '' }}
     name: Python safety
     runs-on: ubuntu-latest
     steps:
@@ -59,6 +62,7 @@ jobs:
       - run: safety check
 
   govulncheck:
+    if: ${{ hashFiles('ports/go/**/*.go') != '' }}
     name: Go vulnerability check
     runs-on: ubuntu-latest
     steps:

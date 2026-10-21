@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: npm }
       - run: npm ci
-      - run: node scripts/generate-vectors.mjs
+      - run: npm run generate:vectors
       - id: hash
         run: echo "sha=$(sha256sum tests/vectors/lombokencryptdecrypt-vectors-v1.json | cut -d' ' -f1)" >> $GITHUB_OUTPUT
       - uses: actions/upload-artifact@v4
@@ -36,6 +36,7 @@ jobs:
   verify-rust:
     name: Verify vectors — Rust
     needs: generate-vectors
+    if: ${{ hashFiles('src/**/*.rs') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +48,7 @@ jobs:
   verify-python:
     name: Verify vectors — Python
     needs: generate-vectors
+    if: ${{ hashFiles('ports/python/**/*.py') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +64,7 @@ jobs:
   verify-go:
     name: Verify vectors — Go
     needs: generate-vectors
+    if: ${{ hashFiles('ports/go/**/*.go') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,6 +78,7 @@ jobs:
   verify-php:
     name: Verify vectors — PHP
     needs: generate-vectors
+    if: ${{ hashFiles('ports/php/**/*.php') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,6 +92,7 @@ jobs:
   verify-java:
     name: Verify vectors — Java
     needs: generate-vectors
+    if: ${{ hashFiles('pom.xml', 'src/main/java/**/*.java') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -100,10 +105,17 @@ jobs:
   summary:
     name: Vector verification summary
     needs: [verify-rust, verify-python, verify-go, verify-php, verify-java]
+    # Port verifications are hashFiles-guarded and may be skipped while ports
+    # are absent; only a real failure/cancellation should block the summary.
+    if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     runs-on: ubuntu-latest
     steps:
-      - name: All vectors verified
+      - name: Report vector verification results
         run: |
-          echo "✅ Cross-language test vector verification PASSED"
+          echo "Cross-language test vector verification PASSED"
           echo "Vectors SHA: ${{ needs.generate-vectors.outputs.vectors_sha }}"
-          echo "Languages verified: TypeScript (reference), Rust, Python, Go, PHP, Java"
+          echo "Rust:   ${{ needs.verify-rust.result }}"
+          echo "Python: ${{ needs.verify-python.result }}"
+          echo "Go:     ${{ needs.verify-go.result }}"
+          echo "PHP:    ${{ needs.verify-php.result }}"
+          echo "Java:   ${{ needs.verify-java.result }}"

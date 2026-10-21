@@ -68,8 +68,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v1
-        with: { deno-version: v1.x }
-      - run: deno test --allow-read tests/ --import-map=deno_import_map.json
+        with: { deno-version: v2.x }
+      - name: Deno test (jest-style BDD via preload shim)
+        run: |
+          deno test --allow-read --allow-env tests/ \
+            --import-map=deno_import_map.json \
+            --unstable-sloppy-imports \
+            --no-check \
+            --preload tests/deno-bdd.ts
 
   bun:
     name: Bun compatibility

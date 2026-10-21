@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   publish-crates:
+    if: ${{ hashFiles('src/**/*.rs') != '' }}
     name: Publish to crates.io
     runs-on: ubuntu-latest
     steps:

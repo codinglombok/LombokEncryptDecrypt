@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   fuzz:
+    if: ${{ hashFiles('fuzz/**') != '' }}
     name: Fuzz ${{ matrix.target }}
     runs-on: ubuntu-latest
     strategy:
