@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   test:
+    if: ${{ hashFiles('ports/dotnet/**/*.csproj') != '' }}
     name: Test — .NET ${{ matrix.dotnet }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:

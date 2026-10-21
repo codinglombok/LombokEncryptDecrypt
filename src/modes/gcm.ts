@@ -1,349 +1,240 @@
 /**
- * LombokEncryptDecrypt — AES-GCM (Galois/Counter Mode)
+ * LombokEncryptDecrypt — AES-GCM (NIST SP 800-38D), pure TypeScript.
  *
- * AEAD: Authenticated Encryption with Associated Data.
- * Provides confidentiality + integrity + authenticity.
- *
- * Reference: NIST SP 800-38D
- * Test vectors: NIST CAVP, Wycheproof
- *
- * @module modes/gcm
+ * GHASH is a bit-serial GF(2^128) multiply (MSB-first, reduction polynomial
+ * R = 0xe1000…0), CTR mode uses the standard 96-bit-IV J0 construction.
+ * Verified against the published NIST GCM test cases and cross-checked with
+ * node:crypto (OpenSSL) for all three key sizes and truncated tags.
  */
 
+import { aesEncryptBlock, aesExpandKey, AES_BLOCK_SIZE } from '../core/aes/aes.js';
 import { LombokCryptoError, ErrorCode } from '../errors.js';
-import type { AeadEncryptOptions, AeadDecryptOptions, AeadResult } from '../types.js';
-import type { CipherGCM, DecipherGCM } from 'node:crypto';
-import { randomIv } from '../utils/random.js';
-import { timingSafeEqual } from '../utils/timing.js';
-import { concatBytes } from '../utils/encoding.js';
-import { HAS_NODE_CRYPTO, HAS_SUBTLE_CRYPTO, PLATFORM } from '../platform/detect.js';
-import { createAes } from '../core/aes/aes.js';
+import { concatBytes, timingSafeEqual, xorBytes } from '../utils/encoding.js';
+import { randomBytes } from '../utils/random.js';
 
-const GCM_IV_SIZE = 12;
-const GCM_TAG_SIZE = 16;
-const VALID_KEY_SIZES = [16, 24, 32] as const;
-
-// ── GHASH ─────────────────────────────────────────────────────────────────
-
-/** GHASH over GF(2^128) — used by GCM for authentication */
-function ghash(hashKey: Uint8Array, data: Uint8Array): Uint8Array {
-  const y = new Uint8Array(16);
-  const blocks = Math.ceil(data.length / 16);
-
-  for (let i = 0; i < blocks; i++) {
-    const block = new Uint8Array(16);
-    const chunk = data.slice(i * 16, (i + 1) * 16);
-    block.set(chunk);
-    // y = (y XOR block) * H in GF(2^128)
-    for (let j = 0; j < 16; j++) y[j]! ^= block[j] ?? 0;
-    gfMul(y, hashKey);
-  }
-  return y;
+export interface AesGcmOptions {
+  /** 12-byte IV. Randomly generated when omitted. */
+  iv?: Uint8Array;
+  /** Additional authenticated data. */
+  aad?: Uint8Array;
+  /** Tag length in bytes: 4 | 6 | 8 | 10 | 12 | 14 | 16 (default 16). */
+  tagLength?: 4 | 6 | 8 | 10 | 12 | 14 | 16;
 }
 
-/** Multiply two 128-bit blocks in GF(2^128) — constant-time implementation */
-function gfMul(x: Uint8Array, y: Uint8Array): void {
+export interface AeadEncryptResult {
+  ciphertext: Uint8Array;
+  tag: Uint8Array;
+  iv: Uint8Array;
+}
+
+const GCM_IV_LENGTH = 12;
+const GCM_TAG_LENGTHS = [4, 6, 8, 10, 12, 14, 16];
+
+function validateKeySize(key: Uint8Array): void {
+  if (key.length !== 16 && key.length !== 24 && key.length !== 32) {
+    throw new LombokCryptoError(
+      ErrorCode.INVALID_KEY_SIZE,
+      `AES-GCM key must be 16, 24 or 32 bytes, got ${key.length}`,
+      'AES-GCM',
+    );
+  }
+}
+
+function validateIv(iv: Uint8Array): void {
+  if (iv.length !== GCM_IV_LENGTH) {
+    throw new LombokCryptoError(
+      ErrorCode.INVALID_IV_SIZE,
+      `AES-GCM IV must be ${GCM_IV_LENGTH} bytes, got ${iv.length}`,
+      'AES-GCM',
+    );
+  }
+}
+
+function xor16(a: Uint8Array, b: Uint8Array, aOffset = 0, bOffset = 0): void {
+  for (let i = 0; i < 16; i++) a[aOffset + i] ^= b[bOffset + i];
+}
+
+function gf128Multiply(x: Uint8Array, y: Uint8Array): Uint8Array {
   const z = new Uint8Array(16);
-  const v = new Uint8Array(y);
-
-  for (let i = 0; i < 128; i++) {
-    const xi = (x[Math.floor(i / 8)] ?? 0) & (0x80 >>> (i % 8));
-    if (xi !== 0) {
-      for (let j = 0; j < 16; j++) z[j]! ^= v[j] ?? 0;
+  const v = Uint8Array.from(y);
+  for (let bit = 0; bit < 128; bit++) {
+    if ((x[bit >> 3] & (0x80 >> (bit & 7))) !== 0) xor16(z, v);
+    const lsb = v[15] & 1;
+    for (let i = 15; i > 0; i--) {
+      v[i] = ((v[i] >>> 1) | (v[i - 1] << 7)) & 0xff;
     }
-    const lsb = (v[15] ?? 0) & 1;
-    // Right shift v by 1
-    for (let j = 15; j > 0; j--) {
-      v[j] = (((v[j] ?? 0) >>> 1) | (((v[j - 1] ?? 0) & 1) << 7)) & 0xff;
-    }
-    v[0] = ((v[0] ?? 0) >>> 1) & 0xff;
-    // XOR with R = 0xe1000...0 if LSB was 1
-    if (lsb) v[0] ^= 0xe1;
+    v[0] = v[0] >>> 1;
+    if (lsb === 1) v[0] ^= 0xe1;
   }
-  for (let i = 0; i < 16; i++) x[i] = z[i] ?? 0;
+  return z;
 }
 
-// ── CTR mode ──────────────────────────────────────────────────────────────
-
-function gcmCtr(aesCore: ReturnType<typeof createAes>, iv: Uint8Array, data: Uint8Array, startCounter: number): Uint8Array {
-  const output = new Uint8Array(data.length);
-  const counter = new Uint8Array(16);
-  counter.set(iv);
-
-  let dataOffset = 0;
-  let ctr = startCounter;
-
-  while (dataOffset < data.length) {
-    // Write counter (big-endian, last 4 bytes)
-    counter[12] = (ctr >>> 24) & 0xff;
-    counter[13] = (ctr >>> 16) & 0xff;
-    counter[14] = (ctr >>> 8) & 0xff;
-    counter[15] = ctr & 0xff;
-
-    const keystream = aesCore.encryptBlock(counter);
-    const remaining = data.length - dataOffset;
-    const blockLen = Math.min(16, remaining);
-
-    for (let i = 0; i < blockLen; i++) {
-      output[dataOffset + i] = (data[dataOffset + i] ?? 0) ^ (keystream[i] ?? 0);
+function ghash(h: Uint8Array, aad: Uint8Array, ciphertext: Uint8Array): Uint8Array {
+  let y = new Uint8Array(16);
+  const process = (data: Uint8Array): void => {
+    for (let off = 0; off < data.length; off += 16) {
+      const block = new Uint8Array(16);
+      block.set(data.subarray(off, Math.min(off + 16, data.length)));
+      xor16(y, block);
+      y = gf128Multiply(y, h);
     }
-
-    dataOffset += blockLen;
-    ctr = (ctr + 1) >>> 0;
-  }
-  return output;
-}
-
-// ── AES-GCM via Node.js crypto (accelerated) ──────────────────────────────
-
-async function encryptNode(
-  plaintext: Uint8Array,
-  key: Uint8Array,
-  iv: Uint8Array,
-  aad?: Uint8Array,
-  tagLength: number = GCM_TAG_SIZE,
-): Promise<AeadResult> {
-  const { createCipheriv } = await import('node:crypto');
-  const alg = `aes-${key.length * 8}-gcm`;
-  const cipher = createCipheriv(alg as 'aes-256-gcm', key, iv, { authTagLength: tagLength }) as CipherGCM;
-  if (aad) cipher.setAAD(aad);
-  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return {
-    ciphertext: new Uint8Array(encrypted),
-    tag: new Uint8Array(tag),
-    iv,
   };
+  process(aad);
+  process(ciphertext);
+  const aadBits = BigInt(aad.length) * 8n;
+  const ctBits = BigInt(ciphertext.length) * 8n;
+  const lenBlock = new Uint8Array(16);
+  for (let i = 0; i < 8; i++) lenBlock[i] = Number((aadBits >> BigInt((7 - i) * 8)) & 0xffn);
+  for (let i = 0; i < 8; i++) lenBlock[8 + i] = Number((ctBits >> BigInt((7 - i) * 8)) & 0xffn);
+  xor16(y, lenBlock);
+  return gf128Multiply(y, h);
 }
 
-async function decryptNode(
+function inc32(counterBlock: Uint8Array): void {
+  for (let i = 15; i >= 12; i--) {
+    counterBlock[i] = (counterBlock[i] + 1) & 0xff;
+    if (counterBlock[i] !== 0) break;
+  }
+}
+
+/** GCTR over `data` starting from `icb` (must be 16 bytes). */
+function gctr(
+  expanded: ReturnType<typeof aesExpandKey>,
+  icb: Uint8Array,
+  data: Uint8Array,
+): Uint8Array {
+  if (data.length === 0) return new Uint8Array(0);
+  const out = new Uint8Array(data.length);
+  const cb = Uint8Array.from(icb);
+  for (let off = 0; off < data.length; off += 16) {
+    const stream = aesEncryptBlock(expanded, cb);
+    const take = Math.min(16, data.length - off);
+    out.set(xorBytes(data.subarray(off, off + take), stream.subarray(0, take)), off);
+    if (off + 16 < data.length) inc32(cb);
+  }
+  return out;
+}
+
+function computeTag(
+  expanded: ReturnType<typeof aesExpandKey>,
+  h: Uint8Array,
+  iv: Uint8Array,
+  aad: Uint8Array,
   ciphertext: Uint8Array,
-  key: Uint8Array,
-  iv: Uint8Array,
-  tag: Uint8Array,
-  aad?: Uint8Array,
-): Promise<Uint8Array> {
-  const { createDecipheriv } = await import('node:crypto');
-  const alg = `aes-${key.length * 8}-gcm`;
-  const decipher = createDecipheriv(alg as 'aes-256-gcm', key, iv, { authTagLength: tag.length }) as DecipherGCM;
-  decipher.setAuthTag(tag);
-  if (aad) decipher.setAAD(aad);
-  try {
-    return new Uint8Array(Buffer.concat([decipher.update(ciphertext), decipher.final()]));
-  } catch {
-    throw LombokCryptoError.authenticationFailed('AES-GCM');
-  }
+): Uint8Array {
+  const j0 = concatBytes(iv, new Uint8Array([0, 0, 0, 1]));
+  const s = ghash(h, aad, ciphertext);
+  const tagMask = aesEncryptBlock(expanded, j0);
+  return xorBytes(s, tagMask);
 }
 
-// ── AES-GCM via SubtleCrypto (browser / Deno / Bun) ──────────────────────
+function deriveTagLength(options?: AesGcmOptions): number {
+  const tagLength = options?.tagLength ?? 16;
+  if (!GCM_TAG_LENGTHS.includes(tagLength)) {
+    throw new LombokCryptoError(
+      ErrorCode.UNSUPPORTED_ALGORITHM,
+      `unsupported GCM tag length ${tagLength}`,
+      'AES-GCM',
+    );
+  }
+  return tagLength;
+}
 
-async function encryptSubtle(
+/** AES-GCM authenticated encryption (SP 800-38D). */
+export async function aesGcmEncrypt(
   plaintext: Uint8Array,
   key: Uint8Array,
-  iv: Uint8Array,
-  aad?: Uint8Array,
-  tagLength: number = GCM_TAG_SIZE,
-): Promise<AeadResult> {
-  const cryptoKey = await globalThis.crypto.subtle.importKey(
-    'raw', key, { name: 'AES-GCM' }, false, ['encrypt'],
-  );
-  const params: AesGcmParams = {
-    name: 'AES-GCM',
-    iv,
-    additionalData: aad,
-    tagLength: tagLength * 8,
-  };
-  const encrypted = await globalThis.crypto.subtle.encrypt(params, cryptoKey, plaintext);
-  const buf = new Uint8Array(encrypted);
-  const ciphertext = buf.slice(0, -tagLength);
-  const tag = buf.slice(-tagLength);
+  options?: AesGcmOptions,
+): Promise<AeadEncryptResult> {
+  validateKeySize(key);
+  const iv = options?.iv ?? randomBytes(GCM_IV_LENGTH);
+  validateIv(iv);
+  const tagLength = deriveTagLength(options);
+  const aad = options?.aad ?? new Uint8Array(0);
+  const expanded = aesExpandKey(key);
+  const h = aesEncryptBlock(expanded, new Uint8Array(16));
+  const j0 = concatBytes(iv, new Uint8Array([0, 0, 0, 1]));
+  const cb = Uint8Array.from(j0);
+  inc32(cb);
+  const ciphertext = gctr(expanded, cb, plaintext);
+  const tag = computeTag(expanded, h, iv, aad, ciphertext).subarray(0, tagLength);
   return { ciphertext, tag, iv };
 }
 
-async function decryptSubtle(
+/** AES-GCM authenticated decryption. Throws AUTHENTICATION_FAILED on tag mismatch. */
+export async function aesGcmDecrypt(
   ciphertext: Uint8Array,
   key: Uint8Array,
   iv: Uint8Array,
   tag: Uint8Array,
-  aad?: Uint8Array,
+  options?: AesGcmOptions,
 ): Promise<Uint8Array> {
-  const cryptoKey = await globalThis.crypto.subtle.importKey(
-    'raw', key, { name: 'AES-GCM' }, false, ['decrypt'],
-  );
-  const combined = concatBytes(ciphertext, tag);
-  const params: AesGcmParams = {
-    name: 'AES-GCM',
-    iv,
-    additionalData: aad,
-    tagLength: tag.length * 8,
-  };
-  try {
-    return new Uint8Array(await globalThis.crypto.subtle.decrypt(params, cryptoKey, combined));
-  } catch {
-    throw LombokCryptoError.authenticationFailed('AES-GCM');
+  validateKeySize(key);
+  validateIv(iv);
+  // The expected tag length comes from the options when present; otherwise it
+  // is inferred from the provided tag (mirrors WebCrypto behaviour).
+  const tagLength = options?.tagLength ?? tag.length;
+  if (!GCM_TAG_LENGTHS.includes(tagLength)) {
+    throw new LombokCryptoError(
+      ErrorCode.UNSUPPORTED_ALGORITHM,
+      `unsupported GCM tag length ${tagLength}`,
+      'AES-GCM',
+    );
   }
-}
-
-// ── AES-GCM pure TS fallback ───────────────────────────────────────────────
-
-async function encryptPure(
-  plaintext: Uint8Array,
-  key: Uint8Array,
-  iv: Uint8Array,
-  aad?: Uint8Array,
-  tagLength: number = GCM_TAG_SIZE,
-): Promise<AeadResult> {
-  const aesCore = createAes(key);
-
-  // H = AES_K(0^128)
-  const h = aesCore.encryptBlock(new Uint8Array(16));
-
-  // Encrypt-then-auth: CTR starting at counter=1
-  const ciphertext = gcmCtr(aesCore, iv, plaintext, 2);
-
-  // J0 = IV || 0^31 || 1
-  const j0 = new Uint8Array(16);
-  j0.set(iv);
-  j0[15] = 1;
-  const e_j0 = aesCore.encryptBlock(j0);
-
-  // GHASH over AAD || ciphertext
-  const aadLen = aad?.length ?? 0;
-  const aadPadded = new Uint8Array(Math.ceil(aadLen / 16) * 16);
-  if (aad) aadPadded.set(aad);
-  const ctPadded = new Uint8Array(Math.ceil(ciphertext.length / 16) * 16);
-  ctPadded.set(ciphertext);
-
-  // Length block: len(aad) || len(ciphertext) in bits (big-endian 64-bit each)
-  const lenBlock = new Uint8Array(16);
-  const aadBits = aadLen * 8;
-  const ctBits = ciphertext.length * 8;
-  lenBlock[7] = aadBits & 0xff;
-  lenBlock[6] = (aadBits >>> 8) & 0xff;
-  lenBlock[15] = ctBits & 0xff;
-  lenBlock[14] = (ctBits >>> 8) & 0xff;
-
-  const authData = concatBytes(aadPadded, ctPadded, lenBlock);
-  const s = ghash(h, authData);
-  const fullTag = new Uint8Array(16);
-  for (let i = 0; i < 16; i++) fullTag[i] = s[i]! ^ e_j0[i]!;
-  const tag = fullTag.slice(0, tagLength);
-
-  return { ciphertext, tag, iv };
-}
-
-async function decryptPure(
-  ciphertext: Uint8Array,
-  key: Uint8Array,
-  iv: Uint8Array,
-  tag: Uint8Array,
-  aad?: Uint8Array,
-): Promise<Uint8Array> {
-  const aesCore = createAes(key);
-  const h = aesCore.encryptBlock(new Uint8Array(16));
-  const j0 = new Uint8Array(16);
-  j0.set(iv);
-  j0[15] = 1;
-  const e_j0 = aesCore.encryptBlock(j0);
-
-  const aadLen = aad?.length ?? 0;
-  const aadPadded = new Uint8Array(Math.ceil(aadLen / 16) * 16);
-  if (aad) aadPadded.set(aad);
-  const ctPadded = new Uint8Array(Math.ceil(ciphertext.length / 16) * 16);
-  ctPadded.set(ciphertext);
-  const lenBlock = new Uint8Array(16);
-  const aadBits = aadLen * 8;
-  const ctBits = ciphertext.length * 8;
-  lenBlock[7] = aadBits & 0xff;
-  lenBlock[6] = (aadBits >>> 8) & 0xff;
-  lenBlock[15] = ctBits & 0xff;
-  lenBlock[14] = (ctBits >>> 8) & 0xff;
-  const authData = concatBytes(aadPadded, ctPadded, lenBlock);
-  const s = ghash(h, authData);
-  const computedTag = new Uint8Array(tag.length);
-  for (let i = 0; i < tag.length; i++) computedTag[i] = s[i]! ^ e_j0[i]!;
-
-  if (!timingSafeEqual(computedTag, tag)) {
-    throw LombokCryptoError.authenticationFailed('AES-GCM');
+  if (tag.length !== tagLength) {
+    throw new LombokCryptoError(
+      ErrorCode.AUTHENTICATION_FAILED,
+      `tag length ${tag.length} does not match expected ${tagLength}`,
+      'AES-GCM',
+    );
   }
-
-  return gcmCtr(aesCore, iv, ciphertext, 2);
-}
-
-// ── Public AES-GCM API ────────────────────────────────────────────────────
-
-function validateKey(key: Uint8Array): void {
-  if (!VALID_KEY_SIZES.includes(key.length as typeof VALID_KEY_SIZES[number])) {
-    throw LombokCryptoError.invalidKeySize([16, 24, 32], key.length, 'AES-GCM');
+  const aad = options?.aad ?? new Uint8Array(0);
+  const expanded = aesExpandKey(key);
+  const h = aesEncryptBlock(expanded, new Uint8Array(16));
+  const expectedTag = computeTag(expanded, h, iv, aad, ciphertext).subarray(0, tagLength);
+  if (!timingSafeEqual(expectedTag, tag)) {
+    throw new LombokCryptoError(
+      ErrorCode.AUTHENTICATION_FAILED,
+      'GCM tag verification failed',
+      'AES-GCM',
+    );
   }
+  const j0 = concatBytes(iv, new Uint8Array([0, 0, 0, 1]));
+  const cb = Uint8Array.from(j0);
+  inc32(cb);
+  return gctr(expanded, cb, ciphertext);
 }
 
+export { AES_BLOCK_SIZE };
+
+/**
+ * Public `aesGcm` facade (encrypt/decrypt/generateKey/generateIv).
+ */
 export const aesGcm = {
-  /**
-   * Encrypt plaintext with AES-GCM.
-   * Returns { ciphertext, tag, iv } — all needed for decryption.
-   *
-   * @example
-   * const key = randomKey256();
-   * const { ciphertext, tag, iv } = await aesGcm.encrypt(plaintext, key);
-   */
   async encrypt(
     plaintext: Uint8Array,
     key: Uint8Array,
-    options: AeadEncryptOptions = {},
-  ): Promise<AeadResult> {
-    validateKey(key);
-    const iv = options.iv ?? randomIv(GCM_IV_SIZE);
-    const tagLength = options.tagLength ?? GCM_TAG_SIZE;
-
-    if (PLATFORM === 'node' && HAS_NODE_CRYPTO) {
-      return encryptNode(plaintext, key, iv, options.aad, tagLength);
-    }
-    if (HAS_SUBTLE_CRYPTO) {
-      return encryptSubtle(plaintext, key, iv, options.aad, tagLength);
-    }
-    return encryptPure(plaintext, key, iv, options.aad, tagLength);
+    options?: AesGcmOptions,
+  ): Promise<AeadEncryptResult> {
+    return aesGcmEncrypt(plaintext, key, options);
   },
-
-  /**
-   * Decrypt and verify ciphertext with AES-GCM.
-   * Throws LombokCryptoError(AUTHENTICATION_FAILED) if tag verification fails.
-   *
-   * @example
-   * const plaintext = await aesGcm.decrypt(ciphertext, key, iv, tag);
-   */
   async decrypt(
     ciphertext: Uint8Array,
     key: Uint8Array,
     iv: Uint8Array,
     tag: Uint8Array,
-    options: AeadDecryptOptions = {},
+    options?: AesGcmOptions,
   ): Promise<Uint8Array> {
-    validateKey(key);
-    if (iv.length !== GCM_IV_SIZE) {
-      throw new LombokCryptoError(ErrorCode.INVALID_IV_SIZE,
-        `AES-GCM IV must be ${GCM_IV_SIZE} bytes; got ${iv.length}`);
-    }
-
-    if (PLATFORM === 'node' && HAS_NODE_CRYPTO) {
-      return decryptNode(ciphertext, key, iv, tag, options.aad);
-    }
-    if (HAS_SUBTLE_CRYPTO) {
-      return decryptSubtle(ciphertext, key, iv, tag, options.aad);
-    }
-    return decryptPure(ciphertext, key, iv, tag, options.aad);
+    return aesGcmDecrypt(ciphertext, key, iv, tag, options);
   },
-
-  /** Generate a random AES-256 key (32 bytes) */
+  /** 16/24/32-byte random key for AES-128/192/256. */
   generateKey(bits: 128 | 192 | 256 = 256): Uint8Array {
-    return randomIv(bits / 8);
+    if (bits !== 128 && bits !== 192 && bits !== 256)
+      throw new RangeError(`bits must be 128, 192 or 256, got ${bits as number}`);
+    return randomBytes(bits / 8);
   },
-
-  /** Generate a random 96-bit IV (recommended for GCM) */
+  /** 12 random bytes — a fresh 96-bit IV. */
   generateIv(): Uint8Array {
-    return randomIv(GCM_IV_SIZE);
+    return randomBytes(12);
   },
 };
-
-/** @internal exposed for conformance tests */
-export { encryptPure as aesGcmEncryptPure, decryptPure as aesGcmDecryptPure };

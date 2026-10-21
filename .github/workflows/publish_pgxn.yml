@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   publish-pgxn:
+    if: ${{ hashFiles('ports/pgxn/**') != '' }}
     name: Build + publish PostgreSQL extension to PGXN
     runs-on: ubuntu-latest
     services:

@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   publish-maven:
+    if: ${{ hashFiles('pom.xml', 'src/main/java/**/*.java') != '' }}
     name: Publish to Maven Central
     runs-on: ubuntu-latest
     steps:

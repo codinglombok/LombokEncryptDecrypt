@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   test:
+    if: ${{ hashFiles('src/main/kotlin/**/*.kt') != '' }}
     name: Kotlin/JVM + Android
     runs-on: ubuntu-latest
     steps:

@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   publish-nuget:
+    if: ${{ hashFiles('ports/dotnet/**/*.csproj') != '' }}
     name: Publish to NuGet
     runs-on: ubuntu-latest
     steps:

@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   test:
+    if: ${{ hashFiles('pom.xml', 'src/main/java/**/*.java') != '' }}
     name: Test — Java ${{ matrix.java }}
     runs-on: ubuntu-latest
     strategy:

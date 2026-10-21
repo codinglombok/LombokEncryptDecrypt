@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   build-wasm:
+    if: ${{ hashFiles('src/**/*.rs') != '' }}
     name: WASM build + browser test
     runs-on: ubuntu-latest
     steps:

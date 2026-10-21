@@ -1,66 +1,69 @@
 /**
- * LombokEncryptDecrypt — CSPRNG (Cryptographically Secure Random)
+ * LombokEncryptDecrypt — CSPRNG.
  *
- * Cross-platform secure random bytes.
- * NEVER use Math.random() in cryptographic code.
- *
- * @module utils/random
+ * Uses the platform WebCrypto `getRandomValues` (Node 19+/Deno/Bun/browser)
+ * and falls back to node:crypto webcrypto on Node 18, where the global is
+ * still behind a flag. Math.random() is banned by ESLint and never used.
  */
 
-import { HAS_SUBTLE_CRYPTO, HAS_NODE_CRYPTO } from '../platform/detect.js';
+import { webcrypto } from 'node:crypto';
 
-/**
- * Fill a Uint8Array with cryptographically secure random bytes.
- * Uses the best available entropy source for the current platform.
- */
+type Rng = {
+  getRandomValues<T extends ArrayBufferView>(array: T): T;
+};
+
+function getGlobalRng(): Rng | undefined {
+  const g = globalThis as { crypto?: Rng };
+  return g.crypto;
+}
+
+/** WebCrypto caps getRandomValues at 64 KiB per call — larger requests are chunked. */
+const MAX_CHUNK = 65536;
+
+/** Fill `out` with cryptographically secure random bytes. */
+export function getRandomInto(out: Uint8Array): Uint8Array {
+  const rng = getGlobalRng();
+  if (rng !== undefined) {
+    for (let offset = 0; offset < out.length; offset += MAX_CHUNK) {
+      rng.getRandomValues(out.subarray(offset, Math.min(offset + MAX_CHUNK, out.length)));
+    }
+    return out;
+  }
+  return randomViaNodeWebcrypto(out);
+}
+
+/* istanbul ignore next -- platform fallback: only reachable on Node 18 with the global WebCrypto flag disabled */
+function randomViaNodeWebcrypto(out: Uint8Array): Uint8Array {
+  for (let offset = 0; offset < out.length; offset += MAX_CHUNK) {
+    webcrypto.getRandomValues(out.subarray(offset, Math.min(offset + MAX_CHUNK, out.length)));
+  }
+  return out;
+}
+
+/** Return `length` cryptographically secure random bytes. */
 export function randomBytes(length: number): Uint8Array {
-  const buf = new Uint8Array(length);
-
-  if (HAS_SUBTLE_CRYPTO) {
-    // Browser + Deno + Bun + Node.js 19+: WebCrypto
-    globalThis.crypto.getRandomValues(buf);
-    return buf;
+  if (!Number.isInteger(length) || length < 0) {
+    throw new RangeError(`length must be a non-negative integer, got ${length}`);
   }
-
-  if (HAS_NODE_CRYPTO) {
-    // Node.js < 19 fallback (should rarely be needed)
-    // Dynamic import to avoid bundler issues in browser
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { randomFillSync } = require('node:crypto') as typeof import('node:crypto');
-    randomFillSync(buf);
-    return buf;
-  }
-
-  throw new Error(
-    'LombokEncryptDecrypt: No CSPRNG available. ' +
-    'Ensure running in Node.js ≥ 18, browser with WebCrypto, Deno, or Bun.',
-  );
+  return getRandomInto(new Uint8Array(length));
 }
 
-/**
- * Generate a random IV/nonce of the given length.
- */
-export function randomIv(length: number): Uint8Array {
-  return randomBytes(length);
-}
-
-/**
- * Generate a random 256-bit (32-byte) symmetric key.
- */
-export function randomKey256(): Uint8Array {
-  return randomBytes(32);
-}
-
-/**
- * Generate a random 128-bit (16-byte) symmetric key.
- */
+/** 16 random bytes — an AES-128 key. */
 export function randomKey128(): Uint8Array {
   return randomBytes(16);
 }
 
-/**
- * Generate a random salt (16 bytes default).
- */
-export function randomSalt(length: number = 16): Uint8Array {
+/** 32 random bytes — an AES-256 / ChaCha20-Poly1305 key. */
+export function randomKey256(): Uint8Array {
+  return randomBytes(32);
+}
+
+/** `length` random bytes (default 16) suitable for use as a KDF salt. */
+export function randomSalt(length = 16): Uint8Array {
+  return randomBytes(length);
+}
+
+/** `length` random bytes (default 12) suitable for use as a 96-bit IV. */
+export function randomIv(length = 12): Uint8Array {
   return randomBytes(length);
 }
