@@ -28,6 +28,23 @@ const hasCipher = (name: string): boolean => {
     return false;
   }
 };
+
+/**
+ * True only when node:crypto can actually instantiate this cipher name.
+ * Deno's node:crypto polyfill lacks the whole aes-192 family and throws a
+ * bare "Unknown cipher"; any other construction error means the cipher
+ * exists but the probe parameters are wrong, which must NOT be treated as
+ * "missing". Differential coverage for a genuinely missing reference is
+ * then provided by the Node/Bun CI legs instead of failing Deno.
+ */
+const canRefCipher = (name: string, iv: Buffer | null): boolean => {
+  try {
+    createCipheriv(name as 'aes-128-cbc', Buffer.alloc(16), iv).final();
+    return true;
+  } catch (err) {
+    return !(err instanceof Error && /unknown cipher/i.test(err.message));
+  }
+};
 const hasDigest = (name: string): boolean => {
   try {
     createHash(name as 'sha256')
@@ -48,6 +65,7 @@ const LENGTHS = [0, 1, 15, 16, 17, 31, 32, 33, 63, 64, 65, 127, 135, 136, 137, 2
 describe('pure-TypeScript fallbacks match OpenSSL', () => {
   describe.each([16, 24, 32])('AES-%i', (keyLen) => {
     it('block cipher', () => {
+      if (!canRefCipher(`aes-${keyLen * 8}-ecb`, null)) return; // e.g. Deno lacks aes-192
       for (let i = 0; i < 20; i++) {
         const key = randomBytes(keyLen),
           block = randomBytes(16);
@@ -59,6 +77,7 @@ describe('pure-TypeScript fallbacks match OpenSSL', () => {
       }
     });
     it('GCM encrypt and decrypt', async () => {
+      if (!canRefCipher(`aes-${keyLen * 8}-gcm`, Buffer.alloc(12))) return; // e.g. Deno lacks aes-192
       for (const len of LENGTHS) {
         const key = randomBytes(keyLen),
           iv = randomBytes(12),

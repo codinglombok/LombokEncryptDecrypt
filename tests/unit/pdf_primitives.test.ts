@@ -20,6 +20,23 @@ import { bytesToHex, hexToBytes, stringToBytes } from '../../src/utils/encoding.
 const hex = (s: string) => hexToBytes(s.replace(/\s+/g, ''));
 const ascii = (s: string) => stringToBytes(s);
 
+/**
+ * True only when node:crypto can actually instantiate this cipher name.
+ * Deno's node:crypto polyfill lacks the whole aes-192 family and throws a
+ * bare "Unknown cipher"; any other construction error means the cipher
+ * exists but the probe parameters are wrong, which must NOT be treated as
+ * "missing". Differential coverage for a genuinely missing reference is
+ * then provided by the Node/Bun CI legs instead of failing Deno.
+ */
+function canRefCipher(name: string, iv: Buffer | null): boolean {
+  try {
+    createCipheriv(name as 'aes-128-cbc', Buffer.alloc(16), iv).final();
+    return true;
+  } catch (err) {
+    return !(err instanceof Error && /unknown cipher/i.test(err.message));
+  }
+}
+
 function rng(seed: number): (n: number) => Uint8Array {
   let s = seed >>> 0;
   return (n) => {
@@ -142,6 +159,7 @@ describe('AES-CBC and AES-ECB (NIST SP 800-38A)', () => {
     const r = rng(1);
     for (let n = 0; n < 200; n++) {
       const keyLen = [16, 24, 32][n % 3]!;
+      if (!canRefCipher(`aes-${keyLen * 8}-cbc`, Buffer.alloc(16))) continue; // e.g. Deno lacks aes-192
       const key = r(keyLen),
         ivb = r(16),
         data = r(n * 3);
