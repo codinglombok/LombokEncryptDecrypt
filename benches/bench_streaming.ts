@@ -3,7 +3,8 @@
  * Measures throughput for large-file encryption (1 GB target).
  */
 
-import { createEncryptStream, createDecryptStream } from '../src/stream/encrypt_stream.js';
+import { createEncryptStream } from '../src/stream/encrypt_stream.js';
+import { createDecryptStream } from '../src/stream/decrypt_stream.js';
 import { randomKey256, randomBytes } from '../src/utils/random.js';
 import { concatBytes } from '../src/utils/encoding.js';
 

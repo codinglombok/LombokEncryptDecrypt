@@ -45,6 +45,18 @@ export interface AesExpandedKey {
 
 export const AES_BLOCK_SIZE = 16;
 
+/** Convenience block-cipher handle over one expanded key. */
+export function createAes(key: Uint8Array): {
+  encryptBlock(block: Uint8Array): Uint8Array;
+  decryptBlock(block: Uint8Array): Uint8Array;
+} {
+  const expanded = aesExpandKey(key);
+  return {
+    encryptBlock: (block: Uint8Array): Uint8Array => aesEncryptBlock(expanded, block),
+    decryptBlock: (block: Uint8Array): Uint8Array => aesDecryptBlock(expanded, block),
+  };
+}
+
 function xtime(x: number): number {
   return ((x << 1) ^ (x & 0x80 ? 0x1b : 0)) & 0xff;
 }
@@ -179,7 +191,7 @@ function invMixColumns(state: Uint8Array): void {
 export function aesEncryptBlock(expanded: AesExpandedKey, block: Uint8Array): Uint8Array {
   if (block.length !== AES_BLOCK_SIZE) {
     throw new LombokCryptoError(
-      ErrorCode.INVALID_IV_SIZE,
+      ErrorCode.INVALID_INPUT,
       `AES block must be 16 bytes, got ${block.length}`,
       'AES',
     );
@@ -202,7 +214,7 @@ export function aesEncryptBlock(expanded: AesExpandedKey, block: Uint8Array): Ui
 export function aesDecryptBlock(expanded: AesExpandedKey, block: Uint8Array): Uint8Array {
   if (block.length !== AES_BLOCK_SIZE) {
     throw new LombokCryptoError(
-      ErrorCode.INVALID_IV_SIZE,
+      ErrorCode.INVALID_INPUT,
       `AES block must be 16 bytes, got ${block.length}`,
       'AES',
     );

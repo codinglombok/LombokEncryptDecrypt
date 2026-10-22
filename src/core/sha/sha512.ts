@@ -42,15 +42,21 @@ const IV384 = [
 
 function compress(H: Uint32Array, W: Uint32Array, block: Uint8Array, off: number): void {
   for (let i = 0; i < 32; i++) {
-    W[i] = (block[off + i * 4]! << 24) | (block[off + i * 4 + 1]! << 16) | (block[off + i * 4 + 2]! << 8) | block[off + i * 4 + 3]!;
+    W[i] =
+      (block[off + i * 4]! << 24) |
+      (block[off + i * 4 + 1]! << 16) |
+      (block[off + i * 4 + 2]! << 8) |
+      block[off + i * 4 + 3]!;
   }
   for (let i = 16; i < 80; i++) {
     // sigma0(W[i-15]) = rotr1 ^ rotr8 ^ shr7
-    const xh = W[(i - 15) * 2]!, xl = W[(i - 15) * 2 + 1]!;
+    const xh = W[(i - 15) * 2]!,
+      xl = W[(i - 15) * 2 + 1]!;
     const s0h = ((xh >>> 1) | (xl << 31)) ^ ((xh >>> 8) | (xl << 24)) ^ (xh >>> 7);
     const s0l = ((xl >>> 1) | (xh << 31)) ^ ((xl >>> 8) | (xh << 24)) ^ ((xl >>> 7) | (xh << 25));
     // sigma1(W[i-2]) = rotr19 ^ rotr61 ^ shr6
-    const yh = W[(i - 2) * 2]!, yl = W[(i - 2) * 2 + 1]!;
+    const yh = W[(i - 2) * 2]!,
+      yl = W[(i - 2) * 2 + 1]!;
     const s1h = ((yh >>> 19) | (yl << 13)) ^ ((yl >>> 29) | (yh << 3)) ^ (yh >>> 6);
     const s1l = ((yl >>> 19) | (yh << 13)) ^ ((yh >>> 29) | (yl << 3)) ^ ((yl >>> 6) | (yh << 26));
     // W[i] = s1 + W[i-7] + s0 + W[i-16]
@@ -60,8 +66,22 @@ function compress(H: Uint32Array, W: Uint32Array, block: Uint8Array, off: number
     W[i * 2 + 1] = l >>> 0;
   }
 
-  let ah = H[0]!, al = H[1]!, bh = H[2]!, bl = H[3]!, ch = H[4]!, cl = H[5]!, dh = H[6]!, dl = H[7]!;
-  let eh = H[8]!, el = H[9]!, fh = H[10]!, fl = H[11]!, gh = H[12]!, gl = H[13]!, hh = H[14]!, hl = H[15]!;
+  let ah = H[0]!,
+    al = H[1]!,
+    bh = H[2]!,
+    bl = H[3]!,
+    ch = H[4]!,
+    cl = H[5]!,
+    dh = H[6]!,
+    dl = H[7]!;
+  let eh = H[8]!,
+    el = H[9]!,
+    fh = H[10]!,
+    fl = H[11]!,
+    gh = H[12]!,
+    gl = H[13]!,
+    hh = H[14]!,
+    hl = H[15]!;
 
   for (let i = 0; i < 80; i++) {
     // Sigma1(e) = rotr14 ^ rotr18 ^ rotr41
@@ -81,12 +101,24 @@ function compress(H: Uint32Array, W: Uint32Array, block: Uint8Array, off: number
     const t2l = (S0l >>> 0) + (majl >>> 0);
     const t2h = S0h + majh + Math.floor(t2l / 0x100000000);
 
-    hh = gh; hl = gl; gh = fh; gl = fl; fh = eh; fl = el;
+    hh = gh;
+    hl = gl;
+    gh = fh;
+    gl = fl;
+    fh = eh;
+    fl = el;
     let x = dl + t1l;
-    eh = (dh + t1h + Math.floor(x / 0x100000000)) >>> 0; el = x >>> 0;
-    dh = ch; dl = cl; ch = bh; cl = bl; bh = ah; bl = al;
+    eh = (dh + t1h + Math.floor(x / 0x100000000)) >>> 0;
+    el = x >>> 0;
+    dh = ch;
+    dl = cl;
+    ch = bh;
+    cl = bl;
+    bh = ah;
+    bl = al;
     x = t1l + (t2l >>> 0);
-    ah = (t1h + t2h + Math.floor(x / 0x100000000)) >>> 0; al = x >>> 0;
+    ah = (t1h + t2h + Math.floor(x / 0x100000000)) >>> 0;
+    al = x >>> 0;
   }
 
   const add = (k: number, vh: number, vl: number): void => {
@@ -94,8 +126,14 @@ function compress(H: Uint32Array, W: Uint32Array, block: Uint8Array, off: number
     H[k] = (H[k]! + vh + Math.floor(l / 0x100000000)) >>> 0;
     H[k + 1] = l >>> 0;
   };
-  add(0, ah, al); add(2, bh, bl); add(4, ch, cl); add(6, dh, dl);
-  add(8, eh, el); add(10, fh, fl); add(12, gh, gl); add(14, hh, hl);
+  add(0, ah, al);
+  add(2, bh, bl);
+  add(4, ch, cl);
+  add(6, dh, dl);
+  add(8, eh, el);
+  add(10, fh, fl);
+  add(12, gh, gl);
+  add(14, hh, hl);
 }
 
 function digest(data: Uint8Array, iv: number[], outBytes: number): Uint8Array {
@@ -113,8 +151,14 @@ function digest(data: Uint8Array, iv: number[], outBytes: number): Uint8Array {
   const hi = Math.floor(bits / 0x100000000);
   const lo = bits >>> 0;
   const end = tail.length;
-  tail[end - 8] = hi >>> 24; tail[end - 7] = (hi >>> 16) & 0xff; tail[end - 6] = (hi >>> 8) & 0xff; tail[end - 5] = hi & 0xff;
-  tail[end - 4] = lo >>> 24; tail[end - 3] = (lo >>> 16) & 0xff; tail[end - 2] = (lo >>> 8) & 0xff; tail[end - 1] = lo & 0xff;
+  tail[end - 8] = hi >>> 24;
+  tail[end - 7] = (hi >>> 16) & 0xff;
+  tail[end - 6] = (hi >>> 8) & 0xff;
+  tail[end - 5] = hi & 0xff;
+  tail[end - 4] = lo >>> 24;
+  tail[end - 3] = (lo >>> 16) & 0xff;
+  tail[end - 2] = (lo >>> 8) & 0xff;
+  tail[end - 1] = lo & 0xff;
   for (let off = 0; off < tail.length; off += 128) compress(H, W, tail, off);
 
   const out = new Uint8Array(outBytes);
@@ -124,12 +168,20 @@ function digest(data: Uint8Array, iv: number[], outBytes: number): Uint8Array {
 
 /** SHA-512 (64-byte digest). */
 export const sha512 = {
-  hashSync(data: Uint8Array): Uint8Array { return digest(data, IV512, 64); },
-  async hash(data: Uint8Array): Promise<Uint8Array> { return digest(data, IV512, 64); },
+  hashSync(data: Uint8Array): Uint8Array {
+    return digest(data, IV512, 64);
+  },
+  async hash(data: Uint8Array): Promise<Uint8Array> {
+    return digest(data, IV512, 64);
+  },
 };
 
 /** SHA-384 (48-byte digest). */
 export const sha384 = {
-  hashSync(data: Uint8Array): Uint8Array { return digest(data, IV384, 48); },
-  async hash(data: Uint8Array): Promise<Uint8Array> { return digest(data, IV384, 48); },
+  hashSync(data: Uint8Array): Uint8Array {
+    return digest(data, IV384, 48);
+  },
+  async hash(data: Uint8Array): Promise<Uint8Array> {
+    return digest(data, IV384, 48);
+  },
 };

@@ -27,7 +27,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: npm }
       - run: npm ci
-      - run: npm audit --audit-level=moderate
+      # Runtime dependencies only: the library itself is zero-dependency, so
+      # this reflects real (shippable) exposure. Dev-toolchain advisories in
+      # jest/ts-jest transitive deps have no upstream fix yet and are tracked
+      # via Dependabot alerts instead.
+      - run: npm audit --omit=dev --audit-level=moderate
 
   cargo-audit:
     if: ${{ hashFiles('**/Cargo.lock') != '' }}

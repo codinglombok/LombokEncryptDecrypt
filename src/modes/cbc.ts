@@ -137,3 +137,125 @@ export async function aesCbcDecrypt(
   }
   return pkcs7Unpad(out);
 }
+
+// ── Synchronous block-mode facade (SP 800-38A known-answer shape) ─────────
+
+export interface AesBlockPaddingOptions {
+  /** Padding policy — 'pkcs7' (default for CBC) or 'none' for exact-block I/O. */
+  padding?: 'none' | 'pkcs7';
+}
+
+function validateKeyOnly(key: Uint8Array): void {
+  if (key.length !== 16 && key.length !== 24 && key.length !== 32) {
+    throw new LombokCryptoError(
+      ErrorCode.INVALID_KEY_SIZE,
+      `AES key must be 16, 24 or 32 bytes, got ${key.length}`,
+      'AES-CBC',
+    );
+  }
+}
+
+/** AES-ECB (raw block mode). Insecure for real data — kept for legacy formats and PDF primitives. */
+export const aesEcb = {
+  encrypt(key: Uint8Array, plaintext: Uint8Array, options?: AesBlockPaddingOptions): Uint8Array {
+    validateKeyOnly(key);
+    const padding = options?.padding ?? 'none';
+    const data = padding === 'pkcs7' ? pkcs7Pad(plaintext) : plaintext;
+    if (data.length === 0 || data.length % 16 !== 0) {
+      throw new LombokCryptoError(
+        data.length === 0 ? ErrorCode.INTEGRITY_CHECK_FAILED : ErrorCode.INVALID_INPUT,
+        'plaintext length must be a positive multiple of the block size',
+        'AES-ECB',
+      );
+    }
+    const expanded = aesExpandKey(key);
+    const out = new Uint8Array(data.length);
+    for (let off = 0; off < data.length; off += 16) {
+      out.set(aesEncryptBlock(expanded, data.subarray(off, off + 16)), off);
+    }
+    return out;
+  },
+  decrypt(key: Uint8Array, ciphertext: Uint8Array, options?: AesBlockPaddingOptions): Uint8Array {
+    validateKeyOnly(key);
+    const padding = options?.padding ?? 'none';
+    if (ciphertext.length === 0 || ciphertext.length % 16 !== 0) {
+      throw new LombokCryptoError(
+        ciphertext.length === 0 ? ErrorCode.INTEGRITY_CHECK_FAILED : ErrorCode.INVALID_INPUT,
+        'ciphertext length must be a positive multiple of the block size',
+        'AES-ECB',
+      );
+    }
+    const expanded = aesExpandKey(key);
+    const out = new Uint8Array(ciphertext.length);
+    for (let off = 0; off < ciphertext.length; off += 16) {
+      out.set(aesDecryptBlock(expanded, ciphertext.subarray(off, off + 16)), off);
+    }
+    return padding === 'pkcs7' ? pkcs7Unpad(out) : out;
+  },
+};
+
+/** Synchronous AES-CBC (key-first signature, SP 800-38A known-answer shape). */
+export const aesCbc = {
+  encrypt(
+    key: Uint8Array,
+    iv: Uint8Array,
+    plaintext: Uint8Array,
+    options?: AesBlockPaddingOptions,
+  ): Uint8Array {
+    validate(key, iv);
+    const padding = options?.padding ?? 'pkcs7';
+    const data = padding === 'pkcs7' ? pkcs7Pad(plaintext) : plaintext;
+    if (data.length === 0 || data.length % 16 !== 0) {
+      throw new LombokCryptoError(
+        data.length === 0 ? ErrorCode.INTEGRITY_CHECK_FAILED : ErrorCode.INVALID_INPUT,
+        'plaintext length must be a positive multiple of the block size',
+        'AES-CBC',
+      );
+    }
+    const expanded = aesExpandKey(key);
+    const out = new Uint8Array(data.length);
+    let prev = iv;
+    for (let off = 0; off < data.length; off += 16) {
+      const block = new Uint8Array(16);
+      for (let i = 0; i < 16; i++) block[i] = data[off + i]! ^ prev[i]!;
+      const enc = aesEncryptBlock(expanded, block);
+      out.set(enc, off);
+      prev = enc;
+    }
+    return out;
+  },
+  decrypt(
+    key: Uint8Array,
+    iv: Uint8Array,
+    ciphertext: Uint8Array,
+    options?: AesBlockPaddingOptions,
+  ): Uint8Array {
+    validate(key, iv);
+    if (ciphertext.length === 0) {
+      throw new LombokCryptoError(
+        ErrorCode.INTEGRITY_CHECK_FAILED,
+        'ciphertext is empty',
+        'AES-CBC',
+      );
+    }
+    if (ciphertext.length % 16 !== 0) {
+      throw new LombokCryptoError(
+        ErrorCode.INVALID_INPUT,
+        'ciphertext length must be a multiple of the block size',
+        'AES-CBC',
+      );
+    }
+    const padding = options?.padding ?? 'pkcs7';
+    const expanded = aesExpandKey(key);
+    const out = new Uint8Array(ciphertext.length);
+    let prev = iv;
+    for (let off = 0; off < ciphertext.length; off += 16) {
+      const dec = aesDecryptBlock(expanded, ciphertext.subarray(off, off + 16));
+      const block = new Uint8Array(16);
+      for (let i = 0; i < 16; i++) block[i] = dec[i]! ^ prev[i]!;
+      out.set(block, off);
+      prev = ciphertext.subarray(off, off + 16);
+    }
+    return padding === 'pkcs7' ? pkcs7Unpad(out) : out;
+  },
+};

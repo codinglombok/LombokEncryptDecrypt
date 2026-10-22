@@ -3,6 +3,10 @@
  * draft-irtf-cfrg-xchacha), pure TypeScript.
  */
 
+import { LombokCryptoError } from '../../errors.js';
+import { timingSafeEqual } from '../../utils/encoding.js';
+import { poly1305Mac } from './poly1305.js';
+
 const CHACHA_CONST = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574];
 
 function rotl32(x: number, n: number): number {
@@ -151,4 +155,78 @@ export function chacha20Xor(
     blockCounter += 1;
   }
   return out;
+}
+
+/** ChaCha20 keystream XOR with the RFC 8439 argument order (key, nonce, counter, data). */
+export function chacha20Crypt(
+  key: Uint8Array,
+  nonce: Uint8Array,
+  counter: number,
+  data: Uint8Array,
+): Uint8Array {
+  return chacha20Xor(key, counter, nonce, data);
+}
+
+/**
+ * RFC 8439 §2.6: Poly1305 one-time key = the first 32 bytes (little-endian)
+ * of ChaCha20 block 0 under (key, nonce).
+ */
+export function poly1305KeyGen(key: Uint8Array, nonce: Uint8Array): Uint8Array {
+  const block = chacha20Block(key, 0, nonce);
+  const out = new Uint8Array(32);
+  for (let w = 0; w < 8; w++) {
+    const word = block[w]! >>> 0;
+    out[w * 4] = word & 0xff;
+    out[w * 4 + 1] = (word >>> 8) & 0xff;
+    out[w * 4 + 2] = (word >>> 16) & 0xff;
+    out[w * 4 + 3] = (word >>> 24) & 0xff;
+  }
+  return out;
+}
+
+/**
+ * RFC 8439 §2.8 AEAD MAC input:
+ * pad16(aad) || ciphertext || pad16(ciphertext) || le64(aadLen) || le64(ctLen).
+ */
+export function constructAeadMsg(aad: Uint8Array | undefined, ciphertext: Uint8Array): Uint8Array {
+  const a = aad ?? new Uint8Array(0);
+  const pad = (n: number): number => (n % 16 === 0 ? 0 : 16 - (n % 16));
+  const out = new Uint8Array(
+    a.length + pad(a.length) + ciphertext.length + pad(ciphertext.length) + 16,
+  );
+  out.set(a, 0);
+  out.set(ciphertext, a.length + pad(a.length));
+  const view = new DataView(out.buffer, out.byteOffset, out.byteLength);
+  view.setBigUint64(out.length - 16, BigInt(a.length), true);
+  view.setBigUint64(out.length - 8, BigInt(ciphertext.length), true);
+  return out;
+}
+
+/** RFC 8439 AEAD encrypt — positional pure variant returning { ciphertext, tag }. */
+export function chachaEncryptPure(
+  plaintext: Uint8Array,
+  key: Uint8Array,
+  nonce12: Uint8Array,
+  aad?: Uint8Array,
+): { ciphertext: Uint8Array; tag: Uint8Array } {
+  const macKey = poly1305KeyGen(key, nonce12);
+  const ciphertext = chacha20Crypt(key, nonce12, 1, plaintext);
+  const tag = poly1305Mac(macKey, constructAeadMsg(aad, ciphertext));
+  return { ciphertext, tag };
+}
+
+/** RFC 8439 AEAD decrypt — positional pure variant; throws AUTHENTICATION_FAILED. */
+export function chachaDecryptPure(
+  ciphertext: Uint8Array,
+  key: Uint8Array,
+  nonce12: Uint8Array,
+  tag: Uint8Array,
+  aad?: Uint8Array,
+): Uint8Array {
+  const macKey = poly1305KeyGen(key, nonce12);
+  const expected = poly1305Mac(macKey, constructAeadMsg(aad, ciphertext));
+  if (!timingSafeEqual(expected, tag)) {
+    throw LombokCryptoError.authenticationFailed('ChaCha20-Poly1305');
+  }
+  return chacha20Crypt(key, nonce12, 1, ciphertext);
 }

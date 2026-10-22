@@ -128,7 +128,7 @@ export const chaCha20Poly1305 = {
     options?: ChaChaPolyOptions,
   ): Promise<ChaChaEncryptResult> {
     assertKey(key);
-    const nonce = options?.nonce ?? randomBytes(NONCE_SIZE);
+    const nonce = options?.nonce ?? options?.iv ?? randomBytes(NONCE_SIZE);
     if (nonce.length !== NONCE_SIZE) {
       throw new LombokCryptoError(
         ErrorCode.INVALID_IV_SIZE,

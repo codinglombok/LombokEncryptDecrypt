@@ -17,8 +17,8 @@
  * @module hybrid/envelope
  */
 
-import type { EnvelopeEncryptedKey, SymmetricAlgorithm } from '../types.js';
-import { randomKey256, randomIv } from '../utils/random.js';
+import type { EnvelopeEncryptedKey } from '../types.js';
+import { randomKey256 } from '../utils/random.js';
 import { aesGcm } from '../modes/gcm.js';
 import { concatBytes } from '../utils/encoding.js';
 import { LombokCryptoError, ErrorCode } from '../errors.js';
@@ -45,9 +45,9 @@ function unpackAeadResult(
     throw new LombokCryptoError(ErrorCode.INVALID_INPUT, 'Packed AEAD data too short');
   }
   return {
-    iv:         packed.slice(0, ivLen),
+    iv: packed.slice(0, ivLen),
     ciphertext: packed.slice(ivLen, packed.length - tagLen),
-    tag:        packed.slice(packed.length - tagLen),
+    tag: packed.slice(packed.length - tagLen),
   };
 }
 

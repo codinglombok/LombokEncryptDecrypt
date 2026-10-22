@@ -4,11 +4,11 @@
 
 export {
   createEncryptStream,
-  createDecryptStream,
   encryptStreamGen,
-  decryptStreamGen,
+  STREAM_FLAG_MORE,
+  STREAM_FLAG_LAST,
   type EncryptStream,
-  type DecryptStream,
   type StreamOptions,
   type StreamAlgorithm,
 } from './encrypt_stream.js';
+export { createDecryptStream, decryptStreamGen, type DecryptStream } from './decrypt_stream.js';

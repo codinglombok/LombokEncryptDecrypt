@@ -1,4 +1,9 @@
-import { createPrivateKey, createPublicKey, sign as nodeSign, verify as nodeVerify } from 'node:crypto';
+import {
+  createPrivateKey,
+  createPublicKey,
+  sign as nodeSign,
+  verify as nodeVerify,
+} from 'node:crypto';
 import { ecdsa, type EcdsaCurve } from '../../src/core/ecc/ecdsa.js';
 
 const msg = new TextEncoder().encode('lombok ecdsa test message');
@@ -15,16 +20,27 @@ describe('ECDSA (WebCrypto)', () => {
       const kp = await ecdsa.generateKeyPair(curve);
       const sig = await ecdsa.sign(curve, kp.privateKey, msg);
       expect(await ecdsa.verify(curve, kp.publicKey, msg, sig)).toBe(true);
-      expect(await ecdsa.verify(curve, kp.publicKey, new TextEncoder().encode('other'), sig)).toBe(false);
-      const bad = sig.slice(); bad[0]! ^= 1;
+      expect(await ecdsa.verify(curve, kp.publicKey, new TextEncoder().encode('other'), sig)).toBe(
+        false,
+      );
+      const bad = sig.slice();
+      bad[0]! ^= 1;
       expect(await ecdsa.verify(curve, kp.publicKey, msg, bad)).toBe(false);
       expect(await ecdsa.verify(curve, kp.publicKey, msg, sig.slice(1))).toBe(false);
     });
 
     it(`${curve}: interoperates with OpenSSL (node:crypto) both ways`, async () => {
       const kp = await ecdsa.generateKeyPair(curve);
-      const priv = createPrivateKey({ key: Buffer.from(kp.privateKey), format: 'der', type: 'pkcs8' });
-      const pub = createPublicKey({ key: Buffer.concat([Buffer.from(SPKI[curve], 'hex'), Buffer.from(kp.publicKey)]), format: 'der', type: 'spki' });
+      const priv = createPrivateKey({
+        key: Buffer.from(kp.privateKey),
+        format: 'der',
+        type: 'pkcs8',
+      });
+      const pub = createPublicKey({
+        key: Buffer.concat([Buffer.from(SPKI[curve], 'hex'), Buffer.from(kp.publicKey)]),
+        format: 'der',
+        type: 'spki',
+      });
       // ours -> OpenSSL
       const sig = await ecdsa.sign(curve, kp.privateKey, msg);
       expect(nodeVerify(HASH[curve], msg, { key: pub, dsaEncoding: 'ieee-p1363' }, sig)).toBe(true);
@@ -35,7 +51,11 @@ describe('ECDSA (WebCrypto)', () => {
   }
 
   it('rejects an invalid private key and unsupported curve', async () => {
-    await expect(ecdsa.sign('P-256', new Uint8Array(10), msg)).rejects.toMatchObject({ code: 'INVALID_INPUT' });
-    await expect(ecdsa.generateKeyPair('P-192' as never)).rejects.toMatchObject({ code: 'INVALID_PARAMETER' });
+    await expect(ecdsa.sign('P-256', new Uint8Array(10), msg)).rejects.toMatchObject({
+      code: 'INVALID_INPUT',
+    });
+    await expect(ecdsa.generateKeyPair('P-192' as never)).rejects.toMatchObject({
+      code: 'INVALID_PARAMETER',
+    });
   });
 });

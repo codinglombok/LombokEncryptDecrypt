@@ -1,8 +1,5 @@
-import {
-  createEncryptStream,
-  createDecryptStream,
-  encryptStreamGen,
-} from '../../src/stream/encrypt_stream.js';
+import { createEncryptStream, encryptStreamGen } from '../../src/stream/encrypt_stream.js';
+import { createDecryptStream } from '../../src/stream/decrypt_stream.js';
 import { concatBytes } from '../../src/utils/encoding.js';
 import { randomKey256 } from '../../src/utils/random.js';
 import { ErrorCode } from '../../src/errors.js';
@@ -74,8 +71,8 @@ describe('streaming AEAD', () => {
     const data = new Uint8Array(3000);
     const encBytes = await encryptAll(data, 1024);
     const tampered = new Uint8Array(encBytes);
-    tampered[20] ^= 1;
-    await expect(decryptAll(tampered, 1024)).rejects.toThrow(ErrorCode.INTEGRITY_CHECK_FAILED);
+    tampered[25] ^= 1; // byte 21.. is the first record's ciphertext
+    await expect(decryptAll(tampered, 1024)).rejects.toThrow(ErrorCode.AUTHENTICATION_FAILED);
   });
 
   it('rejects trailing garbage after the sentinel', async () => {

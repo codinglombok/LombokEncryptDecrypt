@@ -141,6 +141,28 @@ function deriveTagLength(options?: AesGcmOptions): number {
 }
 
 /** AES-GCM authenticated encryption (SP 800-38D). */
+/** Pure-TS positional variant: (plaintext, key, iv, aad?) → { ciphertext, tag }. */
+export async function aesGcmEncryptPure(
+  plaintext: Uint8Array,
+  key: Uint8Array,
+  iv: Uint8Array,
+  aad?: Uint8Array,
+): Promise<{ ciphertext: Uint8Array; tag: Uint8Array }> {
+  const { ciphertext, tag } = await aesGcmEncrypt(plaintext, key, { iv, aad });
+  return { ciphertext, tag };
+}
+
+/** Pure-TS positional variant: (ciphertext, key, iv, tag, aad?) → plaintext. */
+export async function aesGcmDecryptPure(
+  ciphertext: Uint8Array,
+  key: Uint8Array,
+  iv: Uint8Array,
+  tag: Uint8Array,
+  aad?: Uint8Array,
+): Promise<Uint8Array> {
+  return aesGcmDecrypt(ciphertext, key, iv, tag, { aad });
+}
+
 export async function aesGcmEncrypt(
   plaintext: Uint8Array,
   key: Uint8Array,

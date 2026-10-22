@@ -108,7 +108,7 @@ describe('cbc includeIv edge', () => {
     const pt = randomBytes(16);
     const { ciphertext } = await aesCbcEncrypt(pt, key, randomBytes(16));
     await expect(aesCbcDecrypt(ciphertext.subarray(0, 15), key, randomBytes(16))).rejects.toThrow(
-      ErrorCode.INVALID_IV_SIZE,
+      ErrorCode.INVALID_INPUT,
     );
   });
 });

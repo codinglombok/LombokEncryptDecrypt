@@ -8,7 +8,13 @@
 import { pbkdf2Derive } from './pbkdf2.js';
 import { hmacRaw } from '../mac/hmac.js';
 import { SYNC_SHA256 } from '../core/sha/sha2.js';
-import { concatBytes } from '../utils/encoding.js';
+import {
+  base64UrlToBytes,
+  bytesToBase64Url,
+  concatBytes,
+  timingSafeEqual,
+} from '../utils/encoding.js';
+import { randomBytes } from '../utils/random.js';
 
 export interface ScryptOptions {
   /** CPU/memory cost — must be a power of two greater than 1 (default 16384). */
@@ -137,3 +143,92 @@ export async function scryptDerive(
 
 /** PBKDF2-HMAC-SHA256 exposed for KeyStore's KDF chain. */
 export { pbkdf2Derive as pbkdf2Sha256Raw, hmacRaw, SYNC_SHA256 };
+
+// ── scrypt object API (options-style) + PHC strings ─────────────────────
+
+/** Ceiling for the scrypt cost factor (N = 2^20 with r = 8 costs 1 GiB). */
+const MAX_SCRYPT_N_LIMIT = 2 ** 20;
+
+function assertScryptCost(N: number, r: number, p: number, dkLen: number): void {
+  if (!Number.isInteger(N) || N < 2 || N > MAX_SCRYPT_N_LIMIT || (N & (N - 1)) !== 0) {
+    throw new RangeError(
+      `scrypt N must be a power of two between 2 and ${MAX_SCRYPT_N_LIMIT}, got ${N}`,
+    );
+  }
+  if (!Number.isInteger(r) || r < 1) {
+    throw new RangeError(`scrypt r must be a positive integer, got ${r}`);
+  }
+  if (!Number.isInteger(p) || p < 1) {
+    throw new RangeError(`scrypt p must be a positive integer, got ${p}`);
+  }
+  if (!Number.isInteger(dkLen) || dkLen < 1) {
+    throw new RangeError(`scrypt dkLen must be a positive integer, got ${dkLen}`);
+  }
+}
+
+/** Options-style scrypt: derive(password, { N, r, p, dkLen, salt }) plus PHC hash/verify. */
+export const scrypt = {
+  async derive(
+    password: string | Uint8Array,
+    options: ScryptOptions & { salt?: Uint8Array },
+  ): Promise<Uint8Array> {
+    const N = options.N ?? 16384;
+    const r = options.r ?? 8;
+    const p = options.p ?? 1;
+    const dkLen = options.dkLen ?? 32;
+    assertScryptCost(N, r, p, dkLen);
+    const salt = options.salt ?? randomBytes(16);
+    return scryptDerive(password, salt, { N, r, p, dkLen });
+  },
+
+  /** PHC-style hash: $scrypt$ln=<log2N>,r=<r>,p=<p>$<salt_b64url>$<hash_b64url> */
+  async hash(
+    password: string | Uint8Array,
+    options?: { N?: number; r?: number; p?: number; dkLen?: number },
+  ): Promise<string> {
+    const N = options?.N ?? 16384;
+    const r = options?.r ?? 8;
+    const p = options?.p ?? 1;
+    const dkLen = options?.dkLen ?? 32;
+    assertScryptCost(N, r, p, dkLen);
+    const salt = randomBytes(16);
+    const dk = await scryptDerive(password, salt, { N, r, p, dkLen });
+    const ln = Math.log2(N);
+    return `$scrypt$ln=${ln},r=${r},p=${p}$${bytesToBase64Url(salt)}$${bytesToBase64Url(dk)}`;
+  },
+
+  /** Constant-time PHC verification — returns false on mismatch, never throws. */
+  async verify(phc: string, password: string | Uint8Array): Promise<boolean> {
+    try {
+      const parts = phc.split('$');
+      if (parts.length !== 5 || parts[0] !== '' || parts[1] !== 'scrypt') return false;
+      const params = new Map(parts[2]!.split(',').map((kv) => kv.split('=') as [string, string]));
+      const ln = Number(params.get('ln'));
+      const r = Number(params.get('r'));
+      const p = Number(params.get('p'));
+      if (!Number.isInteger(ln) || ln < 1 || ln > 20) return false;
+      if (!Number.isInteger(r) || r < 1 || !Number.isInteger(p) || p < 1) return false;
+      const N = 2 ** ln;
+      const salt = base64UrlToBytes(parts[3]!);
+      const expected = base64UrlToBytes(parts[4]!);
+      if (expected.length < 1) return false;
+      const dk = await scryptDerive(password, salt, { N, r, p, dkLen: expected.length });
+      return timingSafeEqual(dk, expected);
+    } catch {
+      return false;
+    }
+  },
+};
+
+/** Positional pure-TS scrypt (conformance tests compare it against OpenSSL). */
+export function scryptPureInternal(
+  password: Uint8Array,
+  salt: Uint8Array,
+  N: number,
+  r: number,
+  p: number,
+  dkLen: number,
+): Promise<Uint8Array> {
+  assertScryptCost(N, r, p, dkLen);
+  return scryptDerive(password, salt, { N, r, p, dkLen });
+}

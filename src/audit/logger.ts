@@ -36,47 +36,46 @@ export class AuditLogger {
     algorithm: string,
     details: Partial<Omit<AuditLogEntry, 'timestamp' | 'operation' | 'algorithm' | 'success'>>,
   ): Promise<void> {
-    if (this.options.disabled) return;
+    if (this.options.disabled === true) return;
 
     const entry: AuditLogEntry = {
-      timestamp:    Date.now(),
+      timestamp: Date.now(),
       operation,
       algorithm,
-      success:      true,
-      keyId:        details.keyId,
-      inputLength:  details.inputLength,
+      success: true,
+      keyId: details.keyId,
+      inputLength: details.inputLength,
       outputLength: details.outputLength,
-      platform:     this.options.includePlatform !== false
-        ? (typeof process !== 'undefined' ? `node/${process.version}` : 'browser')
-        : undefined,
+      platform:
+        this.options.includePlatform !== false
+          ? typeof process !== 'undefined'
+            ? `node/${process.version}`
+            : 'browser'
+          : undefined,
     };
 
     this.entries.push(entry);
 
     // Persist to file if configured
-    if (this.options.filePath) {
+    if (this.options.filePath !== undefined) {
       await this.persist(entry);
     }
   }
 
   /** Log a failed crypto operation */
-  async logError(
-    operation: string,
-    algorithm: string,
-    errorCode: string,
-  ): Promise<void> {
-    if (this.options.disabled) return;
+  async logError(operation: string, algorithm: string, errorCode: string): Promise<void> {
+    if (this.options.disabled === true) return;
 
     const entry: AuditLogEntry = {
-      timestamp:  Date.now(),
+      timestamp: Date.now(),
       operation,
       algorithm,
-      success:    false,
+      success: false,
       errorCode,
     };
 
     this.entries.push(entry);
-    if (this.options.filePath) await this.persist(entry);
+    if (this.options.filePath !== undefined) await this.persist(entry);
   }
 
   /** Get all in-memory log entries */
@@ -100,11 +99,11 @@ export class AuditLogger {
     // VERSION
     header[4] = AUDIT_LOG_VERSION;
     // BLOCK_LEN (2 bytes, big-endian)
-    header[5] = (len >>> 8) & 0xFF;
-    header[6] = len & 0xFF;
+    header[5] = (len >>> 8) & 0xff;
+    header[6] = len & 0xff;
     // TIMESTAMP (8 bytes, big-endian)
     const ts = BigInt(entry.timestamp);
-    for (let i = 0; i < 8; i++) header[7 + i] = Number((ts >> BigInt((7 - i) * 8)) & 0xFFn);
+    for (let i = 0; i < 8; i++) header[7 + i] = Number((ts >> BigInt((7 - i) * 8)) & 0xffn);
 
     // Combine header + payload
     const block = new Uint8Array(header.length + len);
@@ -117,7 +116,7 @@ export class AuditLogger {
   }
 
   private async persist(entry: AuditLogEntry): Promise<void> {
-    if (!this.options.filePath) return;
+    if (this.options.filePath === undefined) return;
     const block = this.serializeEntry(entry);
 
     // RS parity (LombokECC ReedSolomon) is planned, see docs/IMPLEMENTATION_STATUS.md

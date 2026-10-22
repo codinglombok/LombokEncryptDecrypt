@@ -4,24 +4,24 @@
  */
 
 import { pbkdf2 } from '../../src/kdf/pbkdf2.js';
-import { hexToBytes, bytesToHex, stringToBytes } from '../../src/utils/encoding.js';
+import { bytesToHex, stringToBytes } from '../../src/utils/encoding.js';
 
 // RFC 7914 §11 PBKDF2-SHA-256 vectors
 const PBKDF2_VECTORS = [
   {
     id: 'rfc7914-1',
     password: 'passwd',
-    salt:     'salt',
-    iter:     1,
-    dkLen:    64,
+    salt: 'salt',
+    iter: 1,
+    dkLen: 64,
     dk: '55ac046e56e3089fec1691c22544b605f94185216dde0465e68b9d57c20dacbc49ca9cccf179b645991664b39d77ef317c71b845b1e30bd509112041d3a19783',
   },
   {
     id: 'rfc7914-2',
     password: 'Password',
-    salt:     'NaCl',
-    iter:     80000,
-    dkLen:    64,
+    salt: 'NaCl',
+    iter: 80000,
+    dkLen: 64,
     dk: '4ddcd8f60b98be21830cee5ef22701f9641a4418d04c0414aeff08876b34ab56a1d425a1225833549adb841b51c9b3176a272bdebba1d078478f62b397f33c8d',
   },
 ];
@@ -29,15 +29,19 @@ const PBKDF2_VECTORS = [
 describe('PBKDF2-SHA256', () => {
   describe('RFC 7914 vectors', () => {
     for (const v of PBKDF2_VECTORS) {
-      it(v.id, async () => {
-        const dk = await pbkdf2.sha256.derive(
-          stringToBytes(v.password),
-          stringToBytes(v.salt),
-          v.iter,
-          v.dkLen,
-        );
-        expect(bytesToHex(dk)).toBe(v.dk);
-      }, 120_000); // Argon2/PBKDF2 timeout
+      it(
+        v.id,
+        async () => {
+          const dk = await pbkdf2.sha256.derive(
+            stringToBytes(v.password),
+            stringToBytes(v.salt),
+            v.iter,
+            v.dkLen,
+          );
+          expect(bytesToHex(dk)).toBe(v.dk);
+        },
+        120_000,
+      ); // Argon2/PBKDF2 timeout
     }
   });
 
@@ -51,13 +55,16 @@ describe('PBKDF2-SHA256', () => {
 
     it('verify rejects wrong password', async () => {
       const hash = await pbkdf2.hash('correct', { hash: 'SHA-256', iterations: 1000 });
-      const ok   = await pbkdf2.verify(hash, 'wrong');
+      const ok = await pbkdf2.verify(hash, 'wrong');
       expect(ok).toBe(false);
     });
 
     it('SHA-512 variant', async () => {
       const dk = await pbkdf2.sha512.derive(
-        stringToBytes('password'), stringToBytes('salt'), 1, 64,
+        stringToBytes('password'),
+        stringToBytes('salt'),
+        1,
+        64,
       );
       expect(dk.length).toBe(64);
     });
@@ -74,7 +81,7 @@ describe('PBKDF2-SHA256', () => {
 
   describe('Determinism', () => {
     it('same input → same output', async () => {
-      const pw   = stringToBytes('password');
+      const pw = stringToBytes('password');
       const salt = stringToBytes('salt');
       const [d1, d2] = await Promise.all([
         pbkdf2.sha256.derive(pw, salt, 100, 32),
