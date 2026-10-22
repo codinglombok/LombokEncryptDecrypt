@@ -30,10 +30,10 @@ function generateSubkeys(key: Uint8Array): { k1: Uint8Array; k2: Uint8Array } {
 }
 
 function cmacRaw(key: Uint8Array, message: Uint8Array): Uint8Array {
-  if (key.length !== 16 && key.length !== 24 && key.length !== 32) {
+  if (key.length !== 16 && key.length !== 32) {
     throw new LombokCryptoError(
       ErrorCode.INVALID_KEY_SIZE,
-      `CMAC key must be 16, 24 or 32 bytes, got ${key.length}`,
+      `CMAC key must be 16 or 32 bytes, got ${key.length}`,
       'CMAC',
     );
   }
@@ -71,7 +71,7 @@ function cmacRaw(key: Uint8Array, message: Uint8Array): Uint8Array {
   return aesEncryptBlock(expanded, finalInput);
 }
 
-/** AES-CMAC of `message` under `key` (16/24/32-byte key, 16-byte MAC). */
+/** AES-CMAC of `message` under `key` (16- or 32-byte key, 16-byte MAC). */
 export const cmac = {
   compute(key: Uint8Array, message: Uint8Array): Uint8Array {
     return cmacRaw(key, message);
@@ -82,3 +82,31 @@ export const cmac = {
     return timingSafeEqual(cmacRaw(key, message), tag);
   },
 };
+
+function cmacSized(size: 16 | 32): {
+  compute(key: Uint8Array, message: Uint8Array): Uint8Array;
+  verify(key: Uint8Array, message: Uint8Array, tag: Uint8Array): boolean;
+} {
+  return {
+    compute(key: Uint8Array, message: Uint8Array): Uint8Array {
+      if (key.length !== size) {
+        throw new LombokCryptoError(
+          ErrorCode.INVALID_KEY_SIZE,
+          `CMAC key must be ${size} bytes, got ${key.length}`,
+          'CMAC',
+        );
+      }
+      return cmacRaw(key, message);
+    },
+    verify(key: Uint8Array, message: Uint8Array, tag: Uint8Array): boolean {
+      if (key.length !== size || tag.length !== 16) return false;
+      return timingSafeEqual(cmacRaw(key, message), tag);
+    },
+  };
+}
+
+/** CMAC-AES128 — enforces a 16-byte key. */
+export const cmacAes128 = cmacSized(16);
+
+/** CMAC-AES256 — enforces a 32-byte key. */
+export const cmacAes256 = cmacSized(32);

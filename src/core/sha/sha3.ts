@@ -190,6 +190,24 @@ function shakeSponge(rate: number, data: Uint8Array, outputLength: number): Uint
   return out;
 }
 
+/**
+ * Raw Keccak sponge with an explicit rate, output length and domain/pad byte
+ * (0x06 for SHA-3, 0x1f for SHAKE). `rate` is in BITS (e.g. 1152 for SHA3-224);
+ * exposed for conformance tests.
+ */
+export function keccakSponge(
+  data: Uint8Array,
+  rate: number,
+  outputLength: number,
+  padByte: number,
+): Uint8Array {
+  const sponge = new KeccakSponge(rate / 8, padByte);
+  sponge.absorb(data);
+  const out = new Uint8Array(outputLength);
+  sponge.squeeze(out);
+  return out;
+}
+
 /** SHA3-224 — 28-byte digest. */
 export function sha3_224Raw(data: Uint8Array): Uint8Array {
   return sha3Sponge(144, data, 28);

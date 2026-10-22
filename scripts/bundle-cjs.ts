@@ -5,7 +5,7 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
-import { resolve, relative, dirname, basename } from 'node:path';
+import { resolve, relative, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -14,7 +14,7 @@ const CJS_DIR   = resolve(__dirname, '../dist/cjs');
 
 mkdirSync(CJS_DIR, { recursive: true });
 
-function convertEsmToCjs(content: string, filePath: string): string {
+function convertEsmToCjs(content: string, _filePath: string): string {
   // Simple ESM → CJS transform for the barrel exports
   // Production uses esbuild/rollup; this is a minimal fallback
   let cjs = content

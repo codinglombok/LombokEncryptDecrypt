@@ -18,8 +18,9 @@ function detectPlatform(): Platform {
 }
 
 function hasSubtleCrypto(): boolean {
-  return typeof globalThis.crypto !== 'undefined' &&
-    typeof globalThis.crypto.subtle !== 'undefined';
+  return (
+    typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.subtle !== 'undefined'
+  );
 }
 
 function hasNodeCrypto(): boolean {
@@ -35,14 +36,13 @@ function hasNodeCrypto(): boolean {
 }
 
 /** Detect SIMD capabilities via WASM feature detection */
-async function hasWasmSimd(): Promise<boolean> {
+export async function hasWasmSimd(): Promise<boolean> {
   try {
     // WASM SIMD v128 feature probe
     const simdBytes = new Uint8Array([
-      0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00,
-      0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7B, 0x03,
-      0x02, 0x01, 0x00, 0x0A, 0x0A, 0x01, 0x08, 0x00,
-      0x41, 0x00, 0xFD, 0x0F, 0x00, 0x00, 0x0B,
+      0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7b,
+      0x03, 0x02, 0x01, 0x00, 0x0a, 0x0a, 0x01, 0x08, 0x00, 0x41, 0x00, 0xfd, 0x0f, 0x00, 0x00,
+      0x0b,
     ]);
     await WebAssembly.instantiate(simdBytes);
     return true;
@@ -53,24 +53,23 @@ async function hasWasmSimd(): Promise<boolean> {
 
 // ── Singleton capabilities ─────────────────────────────────────────────────
 
-let _capabilities: PlatformCapabilities | null = null;
+let cachedCapabilities: PlatformCapabilities | null = null;
 
 export async function getPlatformCapabilities(): Promise<PlatformCapabilities> {
-  if (_capabilities) return _capabilities;
+  if (cachedCapabilities !== null) return cachedCapabilities;
 
   const platform = detectPlatform();
-  const [wasmSimd] = await Promise.all([hasWasmSimd()]);
 
-  _capabilities = {
+  cachedCapabilities = {
     platform,
-    hasAesNi: platform === 'node' || platform === 'bun',   // AES-NI used via Node.js crypto
+    hasAesNi: platform === 'node' || platform === 'bun', // AES-NI used via Node.js crypto
     hasShaExtensions: platform === 'node' || platform === 'bun',
-    hasAvx2: false,    // Only available in Rust NAPI build
-    hasNeon: false,    // Only available in Rust NAPI build on ARM
+    hasAvx2: false, // Only available in Rust NAPI build
+    hasNeon: false, // Only available in Rust NAPI build on ARM
     hasSubtleCrypto: hasSubtleCrypto(),
     hasHardwareRng: platform !== 'embedded',
-    hasHsm: false,     // Detected at runtime by hardware/pkcs11.ts
-    hasTpm: false,     // Detected at runtime by hardware/tpm2.ts
+    hasHsm: false, // Detected at runtime by hardware/pkcs11.ts
+    hasTpm: false, // Detected at runtime by hardware/tpm2.ts
     hasSecureEnclave: platform === 'node' && process.platform === 'darwin',
   };
 
@@ -79,9 +78,9 @@ export async function getPlatformCapabilities(): Promise<PlatformCapabilities> {
     const bridgePath = './wasm_bridge.js';
     const napiModule = (await import(/* @vite-ignore */ bridgePath)) as
       { isRustCore?: boolean; hasAvx2?: () => boolean; hasNeon?: () => boolean } | undefined;
-    if (napiModule?.isRustCore) {
-      _capabilities = {
-        ..._capabilities,
+    if (napiModule !== undefined && napiModule.isRustCore === true) {
+      cachedCapabilities = {
+        ...cachedCapabilities,
         hasAvx2: napiModule.hasAvx2?.() ?? false,
         hasNeon: napiModule.hasNeon?.() ?? false,
       };
@@ -90,7 +89,7 @@ export async function getPlatformCapabilities(): Promise<PlatformCapabilities> {
     // NAPI not available — use pure TS + SubtleCrypto
   }
 
-  return _capabilities;
+  return cachedCapabilities;
 }
 
 /** Synchronous platform check (for simple runtime branching) */

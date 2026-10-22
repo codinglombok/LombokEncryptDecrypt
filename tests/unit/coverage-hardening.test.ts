@@ -6,11 +6,8 @@
 import { internal } from '../../src/modes/chacha.js';
 import { aesGcmDecrypt, aesGcmEncrypt } from '../../src/modes/gcm.js';
 import { aesCbcEncrypt, aesCbcDecrypt } from '../../src/modes/cbc.js';
-import {
-  createEncryptStream,
-  createDecryptStream,
-  decryptStreamGen,
-} from '../../src/stream/encrypt_stream.js';
+import { createEncryptStream } from '../../src/stream/encrypt_stream.js';
+import { createDecryptStream, decryptStreamGen } from '../../src/stream/decrypt_stream.js';
 import { hmac } from '../../src/mac/hmac.js';
 import { hmacSha256 } from '../../src/mac/hmac.js';
 import { cmac } from '../../src/mac/cmac.js';

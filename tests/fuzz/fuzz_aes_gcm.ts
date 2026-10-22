@@ -32,7 +32,7 @@ export const cases: FuzzCase[] = [
   {
     name: 'max-plaintext-1MB',
     async run() {
-      const key       = randomBytes(32);
+      const key = randomBytes(32);
       const plaintext = randomBytes(1024 * 1024);
       const { ciphertext, tag, iv } = await aesGcm.encrypt(plaintext, key);
       await aesGcm.decrypt(ciphertext, key, iv, tag);
@@ -42,7 +42,7 @@ export const cases: FuzzCase[] = [
     name: 'all-zero-key',
     async run() {
       const key = new Uint8Array(32); // all zeros
-      const pt  = randomBytes(64);
+      const pt = randomBytes(64);
       const { ciphertext, tag, iv } = await aesGcm.encrypt(pt, key);
       await aesGcm.decrypt(ciphertext, key, iv, tag);
     },
@@ -51,8 +51,8 @@ export const cases: FuzzCase[] = [
     name: 'all-zero-iv',
     async run() {
       const key = randomBytes(32);
-      const iv  = new Uint8Array(12); // all zeros — NEVER reuse IV with same key in production!
-      const pt  = randomBytes(16);
+      const iv = new Uint8Array(12); // all zeros — NEVER reuse IV with same key in production!
+      const pt = randomBytes(16);
       const { ciphertext, tag } = await aesGcm.encrypt(pt, key, { iv });
       await aesGcm.decrypt(ciphertext, key, iv, tag);
     },
@@ -62,7 +62,7 @@ export const cases: FuzzCase[] = [
     async run() {
       const key = randomBytes(32);
       const aad = randomBytes(64 * 1024);
-      const pt  = randomBytes(256);
+      const pt = randomBytes(256);
       const { ciphertext, tag, iv } = await aesGcm.encrypt(pt, key, { aad });
       await aesGcm.decrypt(ciphertext, key, iv, tag, { aad });
     },
@@ -89,14 +89,14 @@ export const cases: FuzzCase[] = [
     name: 'bit-flip-rejection',
     async run() {
       const key = randomBytes(32);
-      const pt  = randomBytes(128);
+      const pt = randomBytes(128);
       const { ciphertext, tag, iv } = await aesGcm.encrypt(pt, key);
 
       // Flip every bit position in ciphertext and verify rejection
       for (let byte = 0; byte < Math.min(ciphertext.length, 32); byte++) {
         for (let bit = 0; bit < 8; bit++) {
           const tampered = new Uint8Array(ciphertext);
-          tampered[byte] ^= (1 << bit);
+          tampered[byte] ^= 1 << bit;
           try {
             await aesGcm.decrypt(tampered, key, iv, tag);
             throw new Error(`Bit flip at byte ${byte} bit ${bit} was not detected`);

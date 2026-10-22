@@ -18,9 +18,9 @@ export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
     // (attacker might be able to detect early return via timing)
     let dummy = 0;
     for (let i = 0; i < a.byteLength; i++) {
-      dummy |= (a[i] ?? 0);
+      dummy |= a[i] ?? 0;
     }
-    return dummy === -1;  // always false, but compiler won't optimise away loop
+    return dummy === -1; // always false, but compiler won't optimise away loop
   }
 
   let diff = 0;
@@ -35,8 +35,8 @@ export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
  * Avoids branch prediction leaks.
  */
 export function ctSelect(condition: boolean, a: number, b: number): number {
-  const mask = -(condition ? 1 : 0) | 0;   // 0xFFFFFFFF or 0x00000000
-  return ((mask & a) | (~mask & b)) | 0;
+  const mask = -(condition ? 1 : 0) | 0; // 0xFFFFFFFF or 0x00000000
+  return (mask & a) | (~mask & b) | 0;
 }
 
 /**
@@ -45,7 +45,7 @@ export function ctSelect(condition: boolean, a: number, b: number): number {
  * Both arrays must have the same length.
  */
 export function ctConditionalCopy(condition: boolean, dst: Uint8Array, src: Uint8Array): void {
-  const mask = condition ? 0xFF : 0x00;
+  const mask = condition ? 0xff : 0x00;
   for (let i = 0; i < dst.length; i++) {
     dst[i] = ((dst[i] ?? 0) & ~mask) | ((src[i] ?? 0) & mask);
   }

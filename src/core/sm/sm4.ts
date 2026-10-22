@@ -130,15 +130,36 @@ function sm4Crypt(expanded: Sm4ExpandedKey, block: Uint8Array, reverse: boolean)
   return out;
 }
 
-/** SM4 ECB encrypt of one 16-byte block. */
-export function sm4EncryptBlock(expanded: Sm4ExpandedKey, block: Uint8Array): Uint8Array {
+/** SM4 ECB encrypt of one 16-byte block. Accepts (expanded, block) or (block, expanded). */
+export function sm4EncryptBlock(expanded: Sm4ExpandedKey, block: Uint8Array): Uint8Array;
+export function sm4EncryptBlock(block: Uint8Array, expanded: Sm4ExpandedKey): Uint8Array;
+export function sm4EncryptBlock(
+  a: Sm4ExpandedKey | Uint8Array,
+  b: Uint8Array | Sm4ExpandedKey,
+): Uint8Array {
+  const [expanded, block] =
+    typeof (a as Sm4ExpandedKey).roundKeys !== 'undefined'
+      ? [a as Sm4ExpandedKey, b as Uint8Array]
+      : [b as Sm4ExpandedKey, a as Uint8Array];
   return sm4Crypt(expanded, block, false);
 }
 
-/** SM4 ECB decrypt of one 16-byte block. */
-export function sm4DecryptBlock(expanded: Sm4ExpandedKey, block: Uint8Array): Uint8Array {
+/** SM4 ECB decrypt of one 16-byte block. Accepts (expanded, block) or (block, expanded). */
+export function sm4DecryptBlock(expanded: Sm4ExpandedKey, block: Uint8Array): Uint8Array;
+export function sm4DecryptBlock(block: Uint8Array, expanded: Sm4ExpandedKey): Uint8Array;
+export function sm4DecryptBlock(
+  a: Sm4ExpandedKey | Uint8Array,
+  b: Uint8Array | Sm4ExpandedKey,
+): Uint8Array {
+  const [expanded, block] =
+    typeof (a as Sm4ExpandedKey).roundKeys !== 'undefined'
+      ? [a as Sm4ExpandedKey, b as Uint8Array]
+      : [b as Sm4ExpandedKey, a as Uint8Array];
   return sm4Crypt(expanded, block, true);
 }
+
+/** Alias of sm4ExpandKey (key-schedule naming used by conformance tests). */
+export const sm4KeySchedule = sm4ExpandKey;
 
 /**
  * SM4 ECB-CBC helpers on top of the block primitive.

@@ -26,9 +26,38 @@ import { randomBytes } from '../utils/random.js';
 const MAGIC = stringToBytes('LKS2');
 const VERSION = 2;
 const SALT_SIZE = 16;
+/** Ceiling for the scrypt cost factor: N = 2^20 with r = 8 already costs 1 GiB. */
+const MAX_SCRYPT_N = 2 ** 20;
+
+/**
+ * Reject unreasonable scrypt parameters BEFORE doing any key-derivation work.
+ * `corrupt = true` (parsing an untrusted blob) raises KEYSTORE_CORRUPT;
+ * otherwise (caller-supplied options) it raises INVALID_PARAMETER.
+ */
+function validateScryptCost(N: number, r: number, p: number, corrupt: boolean): void {
+  const invalid =
+    !Number.isInteger(N) ||
+    N < 2 ||
+    N > MAX_SCRYPT_N ||
+    (N & (N - 1)) !== 0 ||
+    !Number.isInteger(r) ||
+    r < 1 ||
+    r > 255 ||
+    !Number.isInteger(p) ||
+    p < 1;
+  if (invalid) {
+    throw new LombokCryptoError(
+      corrupt ? ErrorCode.KEYSTORE_CORRUPT : ErrorCode.INVALID_PARAMETER,
+      `unreasonable scrypt parameters N=${N} r=${r} p=${p}`,
+      'KeyStore',
+    );
+  }
+}
 
 export interface KeyStoreCreateOptions {
   password: string;
+  /** scrypt cost N (default 16384; must be a power of two, max 2^20). Alias of `m`. */
+  N?: number;
   /** scrypt memory cost (default 16384; OWASP floor 19456 recommended in production). */
   m?: number;
   /** scrypt block size (default 8). */
@@ -157,11 +186,12 @@ export class KeyStore {
   private macKey?: Uint8Array;
 
   private constructor(meta: KeyStoreCreateOptions & { salt: Uint8Array }) {
-    this.meta = { N: meta.m ?? 16384, r: meta.r ?? 8, p: meta.p ?? 1, salt: meta.salt };
+    this.meta = { N: meta.N ?? meta.m ?? 16384, r: meta.r ?? 8, p: meta.p ?? 1, salt: meta.salt };
   }
 
   /** Create an empty vault with a fresh random salt. */
   public static async create(options: KeyStoreCreateOptions): Promise<KeyStore> {
+    validateScryptCost(options.N ?? options.m ?? 16384, options.r ?? 8, options.p ?? 1, false);
     const store = new KeyStore({ ...options, salt: randomBytes(SALT_SIZE) });
     const keys = await masterKeys(
       options.password,
@@ -175,8 +205,13 @@ export class KeyStore {
     return store;
   }
 
-  /** Open a serialized vault. Throws KEYSTORE_CORRUPT on wrong password/tamper. */
-  public static async open(blob: Uint8Array, options: { password: string }): Promise<KeyStore> {
+  /** Open a serialized vault. Throws KEYSTORE_CORRUPT on wrong password/tamper.
+   * KDF parameters are always read from the blob header; any N/r/p fields in
+   * `options` are accepted for call-site convenience but ignored. */
+  public static async open(
+    blob: Uint8Array,
+    options: { password: string; N?: number; r?: number; p?: number },
+  ): Promise<KeyStore> {
     if (blob.length < MAGIC.length + 1 + 4 + 2 + SALT_SIZE + 32) {
       throw new LombokCryptoError(
         ErrorCode.KEYSTORE_CORRUPT,
@@ -205,6 +240,7 @@ export class KeyStore {
     const p = blob[offset++];
     const salt = blob.subarray(offset, offset + SALT_SIZE);
     offset += SALT_SIZE;
+    validateScryptCost(N, r, p, true);
 
     const body = blob.subarray(0, blob.length - 32);
     const trailer = blob.subarray(blob.length - 32);
@@ -220,7 +256,7 @@ export class KeyStore {
 
     const store = new KeyStore({
       password: options.password,
-      m: N,
+      N,
       r,
       p,
       salt: new Uint8Array(salt),
@@ -276,11 +312,11 @@ export class KeyStore {
     return { kek: this.kek, macKey: this.macKey };
   }
 
-  /** Store key bytes under an id (overwrites existing). Optional TTL in ms. */
+  /** Store key bytes under an id (overwrites existing). Defaults to AES-256-GCM. Optional TTL in ms. */
   public async set(
     id: string,
     keyBytes: Uint8Array,
-    alg: string,
+    alg: string = 'AES-256-GCM',
     options?: { ttlMs?: number },
   ): Promise<void> {
     const { kek } = this.requireKeys();
@@ -323,14 +359,16 @@ export class KeyStore {
     return keyBytes;
   }
 
-  /** All stored key ids. */
+  /** All stored key ids. Empty while locked (ids are forgotten from the listing,
+   * though unlock() can still restore access to the underlying entries). */
   public list(): string[] {
+    if (this.locked) return [];
     return Array.from(this.entries.keys());
   }
 
-  /** Delete an entry (no-op when absent). */
-  public delete(id: string): void {
-    this.entries.delete(id);
+  /** Delete an entry. Returns true when the entry existed. */
+  public delete(id: string): boolean {
+    return this.entries.delete(id);
   }
 
   /** Serialize with an HMAC trailer. */

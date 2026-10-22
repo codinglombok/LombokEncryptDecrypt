@@ -69,13 +69,32 @@ export async function pbkdf2Derive(
   return out;
 }
 
-function makeConvenience(hashName: Pbkdf2Hash) {
-  return async (
+type Pbkdf2Convenience = {
+  (
+    password: string | Uint8Array,
+    salt: Uint8Array,
+    iterations: number,
+    dkLen: number,
+  ): Promise<Uint8Array>;
+  derive(
+    password: string | Uint8Array,
+    salt: Uint8Array,
+    iterations: number,
+    dkLen: number,
+  ): Promise<Uint8Array>;
+};
+
+function makeConvenience(hashName: Pbkdf2Hash): Pbkdf2Convenience {
+  const fn = async (
     password: string | Uint8Array,
     salt: Uint8Array,
     iterations: number,
     dkLen: number,
   ): Promise<Uint8Array> => pbkdf2Derive(password, { hash: hashName, salt, iterations, dkLen });
+  // Both call styles are supported: pbkdf2.sha256(...) and pbkdf2.sha256.derive(...).
+  const withDerive = fn as unknown as Pbkdf2Convenience;
+  withDerive.derive = fn;
+  return withDerive;
 }
 
 export const pbkdf2 = {

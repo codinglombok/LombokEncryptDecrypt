@@ -13,12 +13,20 @@ export const sha256 = {
   async hash(data: Uint8Array): Promise<Uint8Array> {
     return digest(sha256Raw, data);
   },
+  /** Synchronous digest (same implementation, no promise wrapper). */
+  hashSync(data: Uint8Array): Uint8Array {
+    return sha256Raw(data);
+  },
 };
 
 /** SHA-224 — 28-byte digest. */
 export const sha224 = {
   async hash(data: Uint8Array): Promise<Uint8Array> {
     return digest(sha224Raw, data);
+  },
+  /** Synchronous digest (same implementation, no promise wrapper). */
+  hashSync(data: Uint8Array): Uint8Array {
+    return sha224Raw(data);
   },
 };
 
@@ -27,11 +35,19 @@ export const sha384 = {
   async hash(data: Uint8Array): Promise<Uint8Array> {
     return digest(sha384Raw, data);
   },
+  /** Synchronous digest (same implementation, no promise wrapper). */
+  hashSync(data: Uint8Array): Uint8Array {
+    return sha384Raw(data);
+  },
 };
 
 /** SHA-512 — 64-byte digest. */
 export const sha512 = {
   async hash(data: Uint8Array): Promise<Uint8Array> {
     return digest(sha512Raw, data);
+  },
+  /** Synchronous digest (same implementation, no promise wrapper). */
+  hashSync(data: Uint8Array): Uint8Array {
+    return sha512Raw(data);
   },
 };

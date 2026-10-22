@@ -22,12 +22,12 @@ export const KEY_SIZES = {
 
 // ── IV / Nonce sizes (bytes) ────────────────────────────────────────────────
 export const IV_SIZES = {
-  AES_GCM: 12,          // 96-bit recommended
-  AES_CCM: 13,          // 104-bit default
+  AES_GCM: 12, // 96-bit recommended
+  AES_CCM: 13, // 104-bit default
   AES_CTR: 16,
   AES_CBC: 16,
   CHACHA20: 12,
-  XCHACHA20: 24,        // 192-bit
+  XCHACHA20: 24, // 192-bit
   SM4_GCM: 12,
 } as const;
 
@@ -100,15 +100,15 @@ export const PQC_SIZES = {
 
 // ── Default KDF parameters (OWASP 2024 recommendations) ───────────────────
 export const KDF_DEFAULTS = {
-  ARGON2ID: { m: 65536, t: 3, p: 4 },    // 64MB, 3 iterations, 4 parallel
-  SCRYPT:   { N: 65536, r: 8, p: 1 },
-  PBKDF2:   { iterations: 600_000, hash: 'SHA-256' as const },
-  BCRYPT:   { cost: 12 },
+  ARGON2ID: { m: 65536, t: 3, p: 4 }, // 64MB, 3 iterations, 4 parallel
+  SCRYPT: { N: 65536, r: 8, p: 1 },
+  PBKDF2: { iterations: 600_000, hash: 'SHA-256' as const },
+  BCRYPT: { cost: 12 },
 } as const;
 
 // ── Streaming chunk size ───────────────────────────────────────────────────
-export const STREAM_CHUNK_SIZE = 64 * 1024;  // 64 KB default
+export const STREAM_CHUNK_SIZE = 64 * 1024; // 64 KB default
 
 // ── Audit log ─────────────────────────────────────────────────────────────
-export const AUDIT_LOG_MAGIC = new Uint8Array([0x4C, 0x45, 0x44, 0x4C]);  // 'LEDL'
+export const AUDIT_LOG_MAGIC = new Uint8Array([0x4c, 0x45, 0x44, 0x4c]); // 'LEDL'
 export const AUDIT_LOG_VERSION = 1;

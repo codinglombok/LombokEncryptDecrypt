@@ -2,7 +2,7 @@
 
 **Encrypt/decrypt toolkit for TypeScript — pre-release (v0.1.0)**
 
-> ⚠️ Pre-release, not security-audited. Only the items marked *Verified* in [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) are implemented. The Rust core and non-TypeScript ports have not been compiled or run. No third-party runtime dependencies.
+> Pre-release, not security-audited. Only the items marked *Verified* in [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) are implemented. The Rust core and non-TypeScript ports have not been compiled or run. No third-party runtime dependencies.
 
 [![npm](https://img.shields.io/npm/v/lombokencryptdecrypt.svg)](https://www.npmjs.com/package/lombokencryptdecrypt)
 [![crates.io](https://img.shields.io/crates/v/lombokencryptdecrypt.svg)](https://crates.io/crates/lombokencryptdecrypt)

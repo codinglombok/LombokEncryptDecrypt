@@ -12,7 +12,9 @@ describe('Envelope Encryption (KEK/DEK)', () => {
     const plaintext = new TextEncoder().encode('Secret enterprise data');
 
     const { encryptedData, encryptedKey } = await envelopeEncrypt.encrypt(
-      plaintext, kek, 'my-kek-v1',
+      plaintext,
+      kek,
+      'my-kek-v1',
     );
 
     expect(encryptedKey.kemId).toBe('my-kek-v1');
@@ -29,7 +31,10 @@ describe('Envelope Encryption (KEK/DEK)', () => {
     const aad = new TextEncoder().encode('user-id:12345');
 
     const { encryptedData, encryptedKey } = await envelopeEncrypt.encrypt(
-      plaintext, kek, 'kek-1', aad,
+      plaintext,
+      kek,
+      'kek-1',
+      aad,
     );
     const decrypted = await envelopeEncrypt.decrypt(encryptedData, encryptedKey, kek, aad);
     expect(new TextDecoder().decode(decrypted)).toBe('confidential');
@@ -37,12 +42,12 @@ describe('Envelope Encryption (KEK/DEK)', () => {
 
   it('rejects wrong AAD on decrypt', async () => {
     const kek = randomKey256();
-    const pt  = new TextEncoder().encode('data');
+    const pt = new TextEncoder().encode('data');
     const aad = new TextEncoder().encode('correct-aad');
     const { encryptedData, encryptedKey } = await envelopeEncrypt.encrypt(pt, kek, 'k', aad);
     const wrongAad = new TextEncoder().encode('wrong-aad');
     await expect(
-      envelopeEncrypt.decrypt(encryptedData, encryptedKey, kek, wrongAad)
+      envelopeEncrypt.decrypt(encryptedData, encryptedKey, kek, wrongAad),
     ).rejects.toBeDefined();
   });
 
@@ -63,14 +68,12 @@ describe('Envelope Encryption (KEK/DEK)', () => {
     expect(new TextDecoder().decode(dec)).toBe('very sensitive');
 
     // Cannot decrypt with old KEK + rotated key
-    await expect(
-      envelopeEncrypt.decrypt(encryptedData, rotatedKey, oldKek)
-    ).rejects.toBeDefined();
+    await expect(envelopeEncrypt.decrypt(encryptedData, rotatedKey, oldKek)).rejects.toBeDefined();
   });
 
   it('roundtrip 1MB payload', async () => {
     const kek = randomKey256();
-    const pt  = new Uint8Array(1024 * 1024).fill(0x55);
+    const pt = new Uint8Array(1024 * 1024).fill(0x55);
     const { encryptedData, encryptedKey } = await envelopeEncrypt.encrypt(pt, kek, 'big-kek');
     const dec = await envelopeEncrypt.decrypt(encryptedData, encryptedKey, kek);
     expect(bytesToHex(dec)).toBe(bytesToHex(pt));

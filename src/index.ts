@@ -31,7 +31,7 @@ export {
   type ChaChaPolyOptions,
   type ChaChaEncryptResult,
 } from './modes/chacha.js';
-export { aesCbcEncrypt, aesCbcDecrypt, type AesCbcOptions } from './modes/cbc.js';
+export { aesCbcEncrypt, aesCbcDecrypt, aesCbc, aesEcb, type AesCbcOptions } from './modes/cbc.js';
 export { aesXtsEncrypt, aesXtsDecrypt } from './modes/xts.js';
 export { sm4, sm4ExpandKey, sm4EncryptBlock, sm4DecryptBlock } from './core/sm/sm4.js';
 
@@ -43,16 +43,17 @@ export { blake3 } from './core/blake3/blake3.js';
 
 // MAC
 export { hmacSha256, hmacSha384, hmacSha512, hmac } from './mac/hmac.js';
-export { cmac } from './mac/cmac.js';
+export { cmac, cmacAes128, cmacAes256 } from './mac/cmac.js';
 
 // KDF
 export { hkdf, hkdfDerive, type HkdfOptions } from './kdf/hkdf.js';
 export { pbkdf2, pbkdf2Derive, type Pbkdf2Options } from './kdf/pbkdf2.js';
-export { scryptDerive, type ScryptOptions } from './kdf/scrypt.js';
+export { scryptDerive, scrypt, type ScryptOptions } from './kdf/scrypt.js';
 
 // Asymmetric
 export { ed25519, type Ed25519KeyPair } from './core/ecc/ed25519.js';
 export { ecdsaP256, ecdsaP384, ecdsaP521, type EcdsaKeyPair } from './core/ecc/ecdh.js';
+export { ecdsa } from './core/ecc/ecdsa.js';
 export {
   ecdh,
   ecdhP256,
@@ -72,14 +73,18 @@ export {
 } from './envelope/envelope.js';
 export {
   createEncryptStream,
-  createDecryptStream,
   encryptStreamGen,
-  decryptStreamGen,
+  STREAM_FLAG_MORE,
+  STREAM_FLAG_LAST,
   type EncryptStream,
-  type DecryptStream,
   type StreamOptions,
   type StreamAlgorithm,
 } from './stream/encrypt_stream.js';
+export {
+  createDecryptStream,
+  decryptStreamGen,
+  type DecryptStream,
+} from './stream/decrypt_stream.js';
 export { AuditLogger, type AuditEntry, type AuditInput } from './audit/audit.js';
 export { legacy } from './legacy/legacy.js';
 

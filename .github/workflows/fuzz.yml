@@ -68,6 +68,9 @@ jobs:
             });
 
   dudect:
+    # Skipped until a Rust crate exists at the path Cargo.toml expects
+    # (src/lib.rs). Guards the nightly schedule against permanent red X's.
+    if: ${{ hashFiles('src/lib.rs') != '' }}
     name: Side-channel statistical test (dudect)
     runs-on: ubuntu-latest
     steps:

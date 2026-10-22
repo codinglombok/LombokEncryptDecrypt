@@ -40,7 +40,7 @@ function expand(hashName: KdfHash, prk: Uint8Array, info: Uint8Array, length: nu
   const hash = syncHashFor(hashName);
   const blocks = Math.ceil(length / hash.outputSize);
   if (blocks > 255) {
-    throw new Error(
+    throw new RangeError(
       `HKDF output length ${length} exceeds the maximum for ${hashName} (${hash.outputSize * 255} bytes)`,
     );
   }
