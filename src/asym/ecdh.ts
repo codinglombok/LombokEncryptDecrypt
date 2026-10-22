@@ -171,15 +171,103 @@ async function deriveNode(
   const point = publicKey.subarray(1);
   const x = bytesToBase64Url(point.subarray(0, CURVE_KEY_SIZES[curve]));
   const y = bytesToBase64Url(point.subarray(CURVE_KEY_SIZES[curve]));
-  const privK = createPrivateKey({
-    key: { kty: 'EC', crv: curve, x, y, d: bytesToBase64Url(privateKey) },
-    format: 'jwk',
-  });
-  const pubK = createPublicKey({
-    key: { kty: 'EC', crv: curve, x, y },
-    format: 'jwk',
-  });
-  return new Uint8Array(diffieHellman({ privateKey: privK, publicKey: pubK }));
+  try {
+    const privK = createPrivateKey({
+      key: { kty: 'EC', crv: curve, x, y, d: bytesToBase64Url(privateKey) },
+      format: 'jwk',
+    });
+    const pubK = createPublicKey({
+      key: { kty: 'EC', crv: curve, x, y },
+      format: 'jwk',
+    });
+    return new Uint8Array(diffieHellman({ privateKey: privK, publicKey: pubK }));
+  } catch {
+    // Some node:crypto polyfills (notably Deno's) cannot import EC JWKs at
+    // all — createPrivateKey fails with a bare "crypto error" inside
+    // getKeyObjectHandleFromJwk. Fall back to the equivalent RFC 5480/5915
+    // DER encodings (PKCS#8 for the scalar, SPKI for the point), which every
+    // node-compatible runtime accepts. A genuinely invalid key still throws
+    // on the DER import below, so error semantics are preserved.
+    const privDerKey = createPrivateKey({
+      key: buildPkcs8Ec(curve, privateKey) as unknown as Buffer,
+      format: 'der',
+      type: 'pkcs8',
+    });
+    const pubDerKey = createPublicKey({
+      key: buildSpkiEc(curve, publicKey) as unknown as Buffer,
+      format: 'der',
+      type: 'spki',
+    });
+    return new Uint8Array(diffieHellman({ privateKey: privDerKey, publicKey: pubDerKey }));
+  }
+}
+
+// ── Minimal DER encoding for EC keys (RFC 5480/5915) ─────────────────────
+
+function derLength(n: number): number[] {
+  if (n < 0x80) return [n];
+  const bytes: number[] = [];
+  let v = n;
+  while (v > 0) {
+    bytes.unshift(v & 0xff);
+    v >>= 8;
+  }
+  return [0x80 | bytes.length, ...bytes];
+}
+
+function derTlv(tag: number, body: number[]): number[] {
+  return [tag, ...derLength(body.length), ...body];
+}
+
+function derOid(oidText: string): number[] {
+  const parts = oidText.split('.').map(Number);
+  const body = [parts[0]! * 40 + parts[1]!];
+  for (let i = 2; i < parts.length; i++) {
+    let v = parts[i]!;
+    const chunk = [v & 0x7f];
+    v >>= 7;
+    while (v > 0) {
+      chunk.unshift((v & 0x7f) | 0x80);
+      v >>= 7;
+    }
+    body.push(...chunk);
+  }
+  return derTlv(0x06, body);
+}
+
+const EC_PUBLIC_KEY_OID = '1.2.840.10045.2.1';
+const CURVE_OIDS: Record<string, string> = {
+  'P-256': '1.2.840.10045.3.1.7',
+  'P-384': '1.3.132.0.34',
+  'P-521': '1.3.132.0.35',
+};
+
+/** PKCS#8 wrapper (RFC 5959) around an RFC 5915 ECPrivateKey scalar. */
+function buildPkcs8Ec(curve: EcdhCurve, scalar: Uint8Array): Uint8Array {
+  const size = CURVE_KEY_SIZES[curve];
+  const d = new Uint8Array(size);
+  d.set(scalar, size - scalar.length); // left-pad the scalar to curve size
+  const algorithm = derTlv(0x30, [...derOid(EC_PUBLIC_KEY_OID), ...derOid(CURVE_OIDS[curve]!)]);
+  const ecPrivateKey = derTlv(0x30, [0x02, 0x01, 0x01, 0x04, ...derLength(size), ...d]);
+  return new Uint8Array(
+    derTlv(0x30, [
+      0x02,
+      0x01,
+      0x00,
+      ...algorithm,
+      0x04,
+      ...derLength(ecPrivateKey.length),
+      ...ecPrivateKey,
+    ]),
+  );
+}
+
+/** SPKI wrapper (RFC 5480) around an uncompressed EC point (0x04||X||Y). */
+function buildSpkiEc(curve: EcdhCurve, point: Uint8Array): Uint8Array {
+  const algorithm = derTlv(0x30, [...derOid(EC_PUBLIC_KEY_OID), ...derOid(CURVE_OIDS[curve]!)]);
+  return new Uint8Array(
+    derTlv(0x30, [...algorithm, 0x03, ...derLength(point.length + 1), 0x00, ...point]),
+  );
 }
 
 // ── Public API ────────────────────────────────────────────────────────────
