@@ -8,8 +8,23 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect PostgreSQL extension sources
+    runs-on: ubuntu-latest
+    outputs:
+      pgext: ${{ steps.pgext.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pgext
+        # hashFiles hanya boleh di level STEP (job-level `if` = startup_failure).
+        # Ekstensi dibangun dari ports/sql (guard lama 'ports/pgxn/**' tidak
+        # pernah match — path itu tidak ada).
+        if: ${{ hashFiles('ports/sql/**') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   publish-pgxn:
-    if: ${{ hashFiles('ports/pgxn/**') != '' }}
+    needs: config
+    if: needs.config.outputs.pgext == 'true'
     name: Build + publish PostgreSQL extension to PGXN
     runs-on: ubuntu-latest
     services:

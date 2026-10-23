@@ -8,8 +8,21 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect PHP sources
+    runs-on: ubuntu-latest
+    outputs:
+      php: ${{ steps.php.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: php
+        # hashFiles hanya boleh di level STEP (job-level `if` = startup_failure)
+        if: ${{ hashFiles('ports/php/**/*.php') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   trigger-packagist:
-    if: ${{ hashFiles('ports/php/**/*.php') != '' }}
+    needs: config
+    if: needs.config.outputs.php == 'true'
     name: Trigger Packagist update
     runs-on: ubuntu-latest
     steps:

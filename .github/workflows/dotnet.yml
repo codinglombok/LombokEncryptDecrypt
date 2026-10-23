@@ -10,9 +10,23 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    if: ${{ hashFiles('ports/dotnet/**/*.csproj') != '' }}
-    name: Test — .NET ${{ matrix.dotnet }} on ${{ matrix.os }}
+  config:
+    name: Detect .NET projects
+    runs-on: ubuntu-latest
+    outputs:
+      dotnet: ${{ steps.dotnet.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: dotnet
+        # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
+        # ditolak GitHub -> startup_failure)
+        if: ${{ hashFiles('*.csproj', 'ports/dotnet/**/*.csproj') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: config
+    if: needs.config.outputs.dotnet == 'true'
+    name: Build — .NET ${{ matrix.dotnet }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -23,4 +37,5 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: '${{ matrix.dotnet }}' }
       - run: dotnet build LombokEncryptDecrypt.csproj --configuration Release
-      - run: dotnet test ports/dotnet/LombokEncryptDecrypt.Tests.csproj --verbosity normal
+      # Catatan: belum ada proyek test C# (ports/dotnet/ tidak ada). Tambahkan
+      # kembali `dotnet test` di sini begitu proyek test dibuat.
