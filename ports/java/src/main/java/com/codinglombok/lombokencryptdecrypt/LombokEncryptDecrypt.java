@@ -15,7 +15,7 @@ import java.util.Arrays;
  *
  * @version 0.1.0
  * @author  codinglombok
- * @license Apache-2.0
+ * Licensed under the Apache License, Version 2.0.
  */
 public final class LombokEncryptDecrypt {
 

@@ -210,6 +210,12 @@ class AesGcmTest extends TestCase
 
     public function testArgon2idHashAndVerify(): void
     {
+        // PASSWORD_ARGON2ID hanya terdefinisi pada build PHP dengan sodium/
+        // libargon2 — guard menjaga portabilitas suite (CI setup-php selalu
+        // memuat sodium, build statis minimal bisa di-skip dengan rapi).
+        if (!defined('PASSWORD_ARGON2ID')) {
+            self::markTestSkipped('Argon2id requires the sodium (or libargon2-backed) PHP build');
+        }
         $hash = LombokEncryptDecrypt::argon2idHash('my-password', 19456, 2, 1);
         self::assertStringStartsWith('$argon2id$', $hash);
         self::assertTrue(LombokEncryptDecrypt::argon2idVerify($hash, 'my-password'));

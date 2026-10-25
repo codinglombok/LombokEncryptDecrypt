@@ -115,6 +115,12 @@ final class LombokEncryptDecrypt
     /**
      * ChaCha20-Poly1305 encrypt (uses libsodium).
      *
+     * @param  string $plaintext Plaintext to encrypt
+     * @param  string $key       32-byte key
+     * @param  string|null $nonce 12-byte nonce, generated when null
+     * @param  string $aad       Additional authenticated data
+     * @return array{ciphertext: string, tag: string, nonce: string}
+     *
      * @throws CryptoException On failure
      */
     public static function chaCha20Poly1305Encrypt(
@@ -194,6 +200,11 @@ final class LombokEncryptDecrypt
      */
     public static function ed25519Sign(string $message, string $privateKey): string
     {
+        // sodium_crypto_sign_detached menuntut non-empty-string; kunci Ed25519
+        // valid selalu 64 byte (seed + public).
+        if ($privateKey === '') {
+            throw new CryptoException('INVALID_KEY_SIZE', 'Ed25519 private key must not be empty');
+        }
         return sodium_crypto_sign_detached($message, $privateKey);
     }
 
@@ -202,6 +213,12 @@ final class LombokEncryptDecrypt
      */
     public static function ed25519Verify(string $message, string $signature, string $publicKey): bool
     {
+        // Kedua parameter sodium_crypto_sign_verify_detached bertipe
+        // non-empty-string — kosong berarti pasti invalid, kembalikan false
+        // tanpa memanggil libsodium (juga menyearkan tipe utk phpstan L9).
+        if ($signature === '' || $publicKey === '') {
+            return false;
+        }
         try {
             return sodium_crypto_sign_verify_detached($signature, $message, $publicKey);
         } catch (SodiumException) {
@@ -293,18 +310,28 @@ final class LombokEncryptDecrypt
      */
     public static function sm3(string $data): string
     {
-        $result = hash('sm3', $data, true);
-        if ($result === false) {
+        // Deterministik: algoritma yang tidak didukung OpenSSL tidak akan ada
+        // di hash_algos() — guard ini menghasilkan [KODE] tanpa dead-catch
+        // (hash() PHP 8.1+ melempar ValueError, tapi stub analisis statis
+        // menganggapnya tidak mungkin).
+        if (!in_array('sm3', hash_algos(), true)) {
             throw new CryptoException('UNSUPPORTED_ALGORITHM', 'SM3 requires OpenSSL ≥ 3.0 with SM support');
         }
-        return $result;
+        return hash('sm3', $data, true);
     }
 
     /**
      * Generate cryptographically secure random bytes.
+     *
+     * @throws CryptoException When length is not positive
      */
     public static function randomBytes(int $length): string
     {
+        // random_bytes menuntut int<1,max> — guard ini menajamkan tipe dan
+        // memberi error [KODE] yang konsisten lintas bahasa.
+        if ($length < 1) {
+            throw new CryptoException('INVALID_LENGTH', 'Length must be at least 1 byte');
+        }
         return random_bytes($length);
     }
 
@@ -344,10 +371,16 @@ final class LombokEncryptDecrypt
  */
 class CryptoException extends RuntimeException
 {
-    public function __construct(
-        public readonly string $code,
-        string $message,
-    ) {
+    /**
+     * Kode error mesin-terbaca (mis. INVALID_KEY_SIZE). Sengaja BUKAN bernama
+     * $code: properti int non-readonly milik \Exception tidak boleh
+     * dideklarasikan ulang (FATAL "Cannot redeclare" sejak PHP 8.3).
+     */
+    public readonly string $errorCode;
+
+    public function __construct(string $code, string $message)
+    {
+        $this->errorCode = $code;
         parent::__construct("[{$code}] {$message}");
     }
 }
