@@ -1,6 +1,6 @@
 {
   "name": "lombokencryptdecrypt",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Encrypt/decrypt toolkit for TypeScript — pre-release. Pure-TS, zero runtime dependencies.",
   "type": "module",
   "license": "Apache-2.0",

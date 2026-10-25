@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — SemVer.
 
 ---
 
+## 1.0.0 (2026-10-25)
+
+
+### Bug Fixes
+
+* **ci:** close first-run real-test failures across Go/Java/PHP + ci.yml trigger typo ([91d0cf7](https://github.com/codinglombok/LombokEncryptDecrypt/commit/91d0cf7ce7d11145a6929c2aed028acfa1c8e826))
+
 ## [Unreleased]
 
 ### Added
