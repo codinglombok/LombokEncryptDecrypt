@@ -28,7 +28,10 @@ jobs:
     if: needs.config.outputs.java == 'true'
     name: Test — Java ${{ matrix.java }}
     runs-on: ubuntu-latest
+    # fail-fast: false — Java 21 tetap dieksekusi walau Java 17 merah,
+    # agar kegagalan per-versi terlihat (dulu 21 selalu 'cancelled').
     strategy:
+      fail-fast: false
       matrix:
         java: ['17', '21']
     steps:

@@ -16,17 +16,11 @@ jobs:
         id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          release-type: node
-          package-name: lombokencryptdecrypt
-          changelog-path: CHANGELOG.md
-          bump-patch-for-minor-pre-major: true
-          pull-request-title-pattern: 'chore: release ${version}'
-          extra-files: |
-            Cargo.toml
-            pyproject.toml
-            pom.xml
-            ports/php/src/LombokEncryptDecrypt.php
-            ports/go/go.mod
+          # v4 = manifest-only: seluruh opsi (release-type, package-name,
+          # changelog-path, extra-files, ...) dibaca dari config-file.
+          # Input lain di `with:` diabaikan action ("Unexpected input(s)").
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
       - name: Tag created
         if: ${{ steps.release.outputs.release_created }}
