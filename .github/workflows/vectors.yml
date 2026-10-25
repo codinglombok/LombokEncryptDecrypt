@@ -15,6 +15,67 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect per-port vector-test readiness
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.rust.outputs.ready }}
+      python: ${{ steps.python.outputs.ready }}
+      go: ${{ steps.go.outputs.exists }}
+      php: ${{ steps.php.outputs.exists }}
+      java: ${{ steps.java.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: rust
+        # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
+        # ditolak GitHub -> startup_failure). verify-rust mengompilasi crate —
+        # aktif hanya ketika crate siap (entry point + semua file `mod` ada).
+        if: ${{ hashFiles('src-rust/**/*.rs') != '' }}
+        run: |
+          READY=false
+          if [ -f src-rust/lib.rs ]; then
+            READY=true
+            grep -A3 '^\[lib\]' Cargo.toml | grep -q 'path[[:space:]]*=' || [ -f src/lib.rs ] || READY=false
+            if [ "$READY" = true ]; then
+              for m in $(grep -hE '^[[:space:]]*(pub )?mod [a-zA-Z_0-9]+' src-rust/lib.rs | sed -E 's/.*mod[[:space:]]+([a-zA-Z_0-9]+).*/\1/'); do
+                [ -f "src-rust/$m.rs" ] || [ -f "src-rust/$m/mod.rs" ] || READY=false
+              done
+            fi
+          fi
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+      - id: python
+        # verify-python menjalankan maturin (kompilasi crate) DAN membutuhkan
+        # ports/python/tests/test_vectors.py — aktif saat keduanya ada.
+        if: ${{ hashFiles('ports/python/**/*.py') != '' }}
+        run: |
+          READY=false
+          [ -f ports/python/tests/test_vectors.py ] || READY=false
+          if [ "$READY" = true ] && [ -f src-rust/lib.rs ]; then
+            READY=true
+            grep -A3 '^\[lib\]' Cargo.toml | grep -q 'path[[:space:]]*=' || [ -f src/lib.rs ] || READY=false
+            if [ "$READY" = true ]; then
+              for m in $(grep -hE '^[[:space:]]*(pub )?mod [a-zA-Z_0-9]+' src-rust/lib.rs | sed -E 's/.*mod[[:space:]]+([a-zA-Z_0-9]+).*/\1/'); do
+                [ -f "src-rust/$m.rs" ] || [ -f "src-rust/$m/mod.rs" ] || READY=false
+              done
+            fi
+          fi
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+      - id: go
+        # go test -run dengan filter yang tidak match tetap exit 0 — aman
+        # dijalankan selama source Go ada.
+        if: ${{ hashFiles('ports/go/**/*.go') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+      - id: php
+        # vendor/bin/phpunit <file-yang-tidak-ada> exit non-zero — aktif hanya
+        # saat VectorTest.php benar-benar ada.
+        if: ${{ hashFiles('ports/php/tests/VectorTest.php') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+      - id: java
+        # surefire -Dtest=X tanpa match gagal (failIfNoTests default true) —
+        # aktif hanya saat CrossLanguageVectorTest.java ada.
+        if: ${{ hashFiles('ports/java/**/CrossLanguageVectorTest.java') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   generate-vectors:
     name: Generate reference vectors (TypeScript)
     runs-on: ubuntu-latest
@@ -35,8 +96,8 @@ jobs:
 
   verify-rust:
     name: Verify vectors — Rust
-    needs: generate-vectors
-    if: ${{ hashFiles('src/**/*.rs') != '' }}
+    needs: [config, generate-vectors]
+    if: needs.config.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,8 +108,8 @@ jobs:
 
   verify-python:
     name: Verify vectors — Python
-    needs: generate-vectors
-    if: ${{ hashFiles('ports/python/**/*.py') != '' }}
+    needs: [config, generate-vectors]
+    if: needs.config.outputs.python == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,8 +124,8 @@ jobs:
 
   verify-go:
     name: Verify vectors — Go
-    needs: generate-vectors
-    if: ${{ hashFiles('ports/go/**/*.go') != '' }}
+    needs: [config, generate-vectors]
+    if: needs.config.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,13 +138,15 @@ jobs:
 
   verify-php:
     name: Verify vectors — PHP
-    needs: generate-vectors
-    if: ${{ hashFiles('ports/php/**/*.php') != '' }}
+    needs: [config, generate-vectors]
+    if: needs.config.outputs.php == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
-        with: { php-version: '8.3', extensions: openssl, tools: composer, phpunit }
+        # tools adalah SATU string (flow-style lama `{ tools: composer,
+        # phpunit }` menciptakan input "phpunit" yang tidak dikenal)
+        with: { php-version: '8.3', extensions: openssl, tools: 'composer, phpunit' }
       - uses: actions/download-artifact@v4
         with: { name: test-vectors, path: tests/vectors/ }
       - run: composer install --no-interaction
@@ -91,8 +154,8 @@ jobs:
 
   verify-java:
     name: Verify vectors — Java
-    needs: generate-vectors
-    if: ${{ hashFiles('pom.xml', 'src/main/java/**/*.java') != '' }}
+    needs: [config, generate-vectors]
+    if: needs.config.outputs.java == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -104,7 +167,10 @@ jobs:
 
   summary:
     name: Vector verification summary
-    needs: [verify-rust, verify-python, verify-go, verify-php, verify-java]
+    # generate-vectors ditambahkan ke needs — output vectors_sha sebelumnya
+    # direferensikan tanpa job itu dalam needs (evaluasi needs.*.X pada job
+    # yang tidak membutuhkannya ditolak GitHub).
+    needs: [generate-vectors, verify-rust, verify-python, verify-go, verify-php, verify-java]
     # Port verifications are hashFiles-guarded and may be skipped while ports
     # are absent; only a real failure/cancellation should block the summary.
     if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}

@@ -19,6 +19,33 @@ permissions:
   security-events: write
 
 jobs:
+  config:
+    name: Detect auditable stacks
+    runs-on: ubuntu-latest
+    outputs:
+      cargo: ${{ steps.cargo.outputs.audit_ready }}
+      python: ${{ steps.python.outputs.exists }}
+      go: ${{ steps.go.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: cargo
+        # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
+        # ditolak GitHub -> startup_failure). Terverifikasi lokal: tanpa entry
+        # point crate, `cargo generate-lockfile` pun menolak mem-parsing
+        # manifest ("can't find library ... or specify lib.path") — jadi gate
+        # audit bukan sekadar Cargo.toml, melainkan entry point ada:
+        # src/lib.rs ATAU override `path` di blok [lib] Cargo.toml.
+        run: |
+          if [ -f src/lib.rs ] || grep -A3 '^\[lib\]' Cargo.toml | grep -q 'path[[:space:]]*='; then
+            echo "audit_ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - id: python
+        if: ${{ hashFiles('pyproject.toml', 'ports/python/requirements*.txt') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+      - id: go
+        if: ${{ hashFiles('ports/go/**/*.go') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   npm-audit:
     name: npm audit
     runs-on: ubuntu-latest
@@ -34,28 +61,35 @@ jobs:
       - run: npm audit --omit=dev --audit-level=moderate
 
   cargo-audit:
-    if: ${{ hashFiles('**/Cargo.lock') != '' }}
+    needs: config
+    if: needs.config.outputs.cargo == 'true'
     name: cargo audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      # Cargo.lock tidak di-commit (library crate) — dibuat on-the-fly hanya
+      # untuk resolusi versi; cargo-audit tidak mengompilasi kode.
+      - run: cargo generate-lockfile
       - run: cargo install cargo-audit --locked
       - run: cargo audit --deny warnings
 
   cargo-deny:
-    if: ${{ hashFiles('**/Cargo.lock') != '' }}
+    needs: config
+    if: needs.config.outputs.cargo == 'true'
     name: cargo deny (license + advisories)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # cargo-deny menyelesaikan dependensinya sendiri bila Cargo.lock absen.
       - uses: EmbarkStudios/cargo-deny-action@v1
         with:
           log-level: warn
           command: check
 
   python-safety:
-    if: ${{ hashFiles('pyproject.toml', 'ports/python/requirements*.txt') != '' }}
+    needs: config
+    if: needs.config.outputs.python == 'true'
     name: Python safety
     runs-on: ubuntu-latest
     steps:
@@ -66,7 +100,8 @@ jobs:
       - run: safety check
 
   govulncheck:
-    if: ${{ hashFiles('ports/go/**/*.go') != '' }}
+    needs: config
+    if: needs.config.outputs.go == 'true'
     name: Go vulnerability check
     runs-on: ubuntu-latest
     steps:
@@ -78,13 +113,19 @@ jobs:
         working-directory: ports/go
 
   codeql:
-    name: CodeQL (TypeScript + C++)
+    name: CodeQL (TypeScript)
     runs-on: ubuntu-latest
     permissions:
       security-events: write
     steps:
       - uses: actions/checkout@v4
+      # Hanya javascript-typescript: tidak ada source C++ terkompilasi di repo
+      # (ports/cpp baru header + vcpkg.json) — CodeQL C++ butuh build nyata
+      # dan input `languages` harus SATU string (YAML flow-style
+      # `{ languages: javascript-typescript, cpp }` dulu menciptakan input
+      # "cpp" yang tidak dikenal -> job gagal). Tambahkan kembali cpp
+      # (di-quote: "javascript-typescript,cpp") begitu ada kode C++ nyata.
       - uses: github/codeql-action/init@v3
-        with: { languages: javascript-typescript, cpp }
+        with: { languages: javascript-typescript }
       - uses: github/codeql-action/autobuild@v3
       - uses: github/codeql-action/analyze@v3

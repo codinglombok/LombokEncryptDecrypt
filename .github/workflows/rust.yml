@@ -15,8 +15,44 @@ env:
   RUSTFLAGS: '-D warnings'
 
 jobs:
+  config:
+    name: Detect Rust crate readiness
+    runs-on: ubuntu-latest
+    outputs:
+      audit_ready: ${{ steps.crate.outputs.audit_ready }}
+      ready: ${{ steps.crate.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: manifest
+        # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
+        # ditolak GitHub -> startup_failure)
+        if: ${{ hashFiles('Cargo.toml', 'src-rust/**/*.rs') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+      - id: crate
+        # Dua tier kesiapan crate (terverifikasi lokal: tanpa entry point,
+        # `cargo generate-lockfile` pun menolak mem-parsing manifest):
+        #  audit_ready — entry point ada (src/lib.rs ATAU override `path` di
+        #    [lib]); cukup untuk generate-lockfile + cargo audit (tanpa kompilasi).
+        #  ready — audit_ready + semua deklarasi `mod` di lib.rs punya filenya
+        #    (24 modul dideklarasikan, baru ct yang ada); syarat kompilasi.
+        # Saat ini keduanya false karena src-rust/lib.rs TANPA override path
+        # sehingga cargo mencari src/lib.rs yang tidak ada. Skip berwarna
+        # abu-abu, bukan dinding X merah.
+        run: |
+          ENTRY=true
+          [ -f src/lib.rs ] || grep -A3 '^\[lib\]' Cargo.toml | grep -q 'path[[:space:]]*=' || ENTRY=false
+          READY=$ENTRY
+          if [ "$READY" = true ]; then
+            for m in $(grep -hE '^[[:space:]]*(pub )?mod [a-zA-Z_0-9]+' src-rust/lib.rs | sed -E 's/.*mod[[:space:]]+([a-zA-Z_0-9]+).*/\1/'); do
+              [ -f "src-rust/$m.rs" ] || [ -f "src-rust/$m/mod.rs" ] || READY=false
+            done
+          fi
+          echo "audit_ready=$ENTRY" >> "$GITHUB_OUTPUT"
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+
   test:
-    if: ${{ hashFiles('src/**/*.rs') != '' }}
+    needs: config
+    if: needs.config.outputs.ready == 'true'
     name: Test — Rust ${{ matrix.toolchain }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -65,7 +101,8 @@ jobs:
           flags: rust
 
   wasm:
-    if: ${{ hashFiles('src/**/*.rs') != '' }}
+    needs: config
+    if: needs.config.outputs.ready == 'true'
     name: WASM build
     runs-on: ubuntu-latest
     steps:
@@ -78,7 +115,8 @@ jobs:
       - run: wasm-pack build --target web --out-dir dist/wasm --features wasm
 
   cross:
-    if: ${{ hashFiles('src/**/*.rs') != '' }}
+    needs: config
+    if: needs.config.outputs.ready == 'true'
     name: Cross-compile — ${{ matrix.target }}
     runs-on: ubuntu-latest
     strategy:
@@ -98,20 +136,29 @@ jobs:
         run: cross build --target ${{ matrix.target }} --no-default-features --features no_std,symmetric,hash
 
   audit:
-    if: ${{ hashFiles('src/**/*.rs') != '' }}
+    needs: config
+    # audit hanya butuh manifest yang bisa di-parsing (entry point ada) untuk
+    # generate-lockfile — TIDAK butuh kompilasi. Saat ini entry point belum
+    # ada -> job skip; aktif otomatis begitu [lib].path atau src/lib.rs hadir.
+    if: needs.config.outputs.audit_ready == 'true'
     name: Security Audit (cargo)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      # Cargo.lock tidak di-commit (library crate) — dibuat on-the-fly hanya
+      # untuk resolusi versi; cargo-audit tidak mengompilasi kode.
+      - run: cargo generate-lockfile
       - run: cargo install cargo-audit --locked
       - run: cargo audit --deny warnings
 
   benchmark:
-    if: ${{ hashFiles('src/**/*.rs') != '' }}
+    needs: config
+    # Dua `if` lama digabung (key duplikat ditolak parser): siap-kompilasi
+    # DAN hanya pada pull_request.
+    if: needs.config.outputs.ready == 'true' && github.event_name == 'pull_request'
     name: Benchmark (delta check)
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }

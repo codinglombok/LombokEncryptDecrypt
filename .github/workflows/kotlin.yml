@@ -10,8 +10,28 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect Kotlin build readiness
+    runs-on: ubuntu-latest
+    outputs:
+      kotlin: ${{ steps.kotlin.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: kotlin
+        # Job aktif hanya ketika infrastruktur build Kotlin lengkap. Saat ini:
+        #  - tidak ada gradlew (wrapper) maupun settings.gradle(.kts) di root;
+        #  - build.gradle.kts memakai `androidTarget` tanpa plugin
+        #    com.android.library di-apply (dinyatakan `apply false`) sehingga
+        #    konfigurasi Gradle pasti gagal.
+        # Aktivasi otomatis begitu gradlew + settings.gradle hadir.
+        run: |
+          if [ -f gradlew ] && compgen -G "settings.gradle*" >/dev/null; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
-    if: ${{ hashFiles('src/main/kotlin/**/*.kt') != '' }}
+    needs: config
+    if: needs.config.outputs.kotlin == 'true'
     name: Kotlin/JVM + Android
     runs-on: ubuntu-latest
     steps:

@@ -10,8 +10,22 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect PHP sources
+    runs-on: ubuntu-latest
+    outputs:
+      php: ${{ steps.php.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: php
+        # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
+        # ditolak GitHub -> startup_failure)
+        if: ${{ hashFiles('ports/php/**/*.php') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   test:
-    if: ${{ hashFiles('ports/php/**/*.php') != '' }}
+    needs: config
+    if: needs.config.outputs.php == 'true'
     name: Test — PHP ${{ matrix.php }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
