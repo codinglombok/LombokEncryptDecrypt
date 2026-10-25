@@ -1,0 +1,174 @@
+# Mirror ke GitHub Packages — dipicu saat GitHub Release dipublikasikan
+# atau manual via workflow_dispatch (uji kering: gate jalan, publish tetap dieksekusi
+# tapi aman karena idempoten; guard tag-vs-manifest hanya aktif pada event release).
+#
+# Registry yang di-mirror (sesuai isi repo):
+#   npm  -> @codinglombok/lombokencryptdecrypt  (npm.pkg.github.com)
+#   Java -> com.codinglombok:lombokencryptdecrypt (maven.pkg.github.com, profil -Pgpr)
+#   C#   -> CodingLombok.LombokEncryptDecrypt     (nuget.pkg.github.com)
+#
+# Container ghcr.io TIDAK disertakan: crate ini library (tanpa [[bin]]) dan tidak
+# ada Dockerfile di repo — tambahkan job container jika kelak ada CLI/image.
+
+name: Release to GitHub Packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  guard:
+    name: Manifest guard
+    runs-on: ubuntu-latest
+    outputs:
+      npm: ${{ steps.npm.outputs.exists }}
+      java: ${{ steps.java.outputs.exists }}
+      dotnet: ${{ steps.dotnet.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: npm
+        if: ${{ hashFiles('package.json') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+      - id: java
+        if: ${{ hashFiles('pom.xml') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+      - id: dotnet
+        if: ${{ hashFiles('*.csproj') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
+  npm-gpr:
+    name: npm mirror (@codinglombok scope)
+    needs: guard
+    if: needs.guard.outputs.npm == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          registry-url: https://npm.pkg.github.com
+          scope: '@${{ github.repository_owner }}'
+      - name: Install dependencies
+        run: npm ci
+      - name: Gates (typecheck, build, test)
+        run: |
+          for s in typecheck build test; do
+            if node -e "process.exit((require('./package.json').scripts||{})['$s']?0:1)"; then
+              echo "::group::npm run $s"; npm run "$s"; echo "::endgroup::"
+            else
+              echo "script '$s' not defined - skipped"
+            fi
+          done
+      - name: Guard — release tag matches package version
+        if: github.event_name == 'release'
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "release tag v$TAG does not match package.json version $PKG" >&2
+            exit 1
+          fi
+      - name: Scope package name for GitHub Packages
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          node -e "
+            const fs=require('fs');
+            const p=JSON.parse(fs.readFileSync('package.json','utf8'));
+            const base=p.name.replace(/^@[^/]+\//,'');
+            p.name='@'+process.env.OWNER+'/'+base;
+            fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');
+            console.log('package name ->',p.name);
+          "
+      - name: Publish to GitHub Packages (skip if version already exists)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FULL="$(node -p "require('./package.json').name")"
+          PKG_VER="$(node -p "require('./package.json').version")"
+          if npm view "$FULL@$PKG_VER" version >/dev/null 2>&1; then
+            echo "$FULL@$PKG_VER already exists on GitHub Packages - skipping publish (idempotent)"
+          else
+            npm publish --access public
+          fi
+
+  maven-gpr:
+    name: Maven mirror (maven.pkg.github.com)
+    needs: guard
+    if: needs.guard.outputs.java == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+          server-id: github
+          server-username: GPR_USERNAME
+          server-password: GPR_TOKEN
+      - name: Guard — release tag matches pom version
+        if: github.event_name == 'release'
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          POM="$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout)"
+          if [ "$TAG" != "$POM" ]; then
+            echo "release tag v$TAG does not match pom.xml version $POM" >&2
+            exit 1
+          fi
+      - name: Deploy to GitHub Packages (mvn deploy -Pgpr, tests included)
+        run: mvn -B deploy -Pgpr
+        env:
+          GPR_USERNAME: ${{ github.actor }}
+          GPR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  nuget-gpr:
+    name: NuGet mirror (nuget.pkg.github.com)
+    needs: guard
+    if: needs.guard.outputs.dotnet == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0' }
+      - name: Guard — release tag matches package version
+        if: github.event_name == 'release'
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VER="$(grep -m1 '<Version>' LombokEncryptDecrypt.csproj | tr -d ' <>/Version')"
+          if [ "$TAG" != "$VER" ]; then
+            echo "release tag v$TAG does not match csproj version $VER" >&2
+            exit 1
+          fi
+      - name: Generate nuget.config for GitHub Packages (runtime-only, not committed)
+        run: |
+          cat > gpr.nuget.config <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="github" value="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" />
+            </packageSources>
+            <packageSourceCredentials>
+              <github>
+                <add key="Username" value="${{ github.actor }}" />
+                <add key="ClearTextPassword" value="${{ secrets.GITHUB_TOKEN }}" />
+              </github>
+            </packageSourceCredentials>
+          </configuration>
+          EOF
+      - name: Build + pack
+        run: |
+          dotnet build LombokEncryptDecrypt.csproj --configuration Release
+          dotnet pack LombokEncryptDecrypt.csproj --configuration Release --output ./artifacts
+      - name: Push to GitHub Packages (skip duplicates)
+        run: dotnet nuget push "./artifacts/*.nupkg" --source github --configfile gpr.nuget.config --skip-duplicate

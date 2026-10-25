@@ -9,8 +9,21 @@ permissions:
   id-token: write
 
 jobs:
+  config:
+    name: Detect Python sources
+    runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.python.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: python
+        # hashFiles hanya boleh di level STEP (job-level `if` = startup_failure)
+        if: ${{ hashFiles('ports/python/**/*.py') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   publish-pypi:
-    if: ${{ hashFiles('ports/python/**/*.py') != '' }}
+    needs: config
+    if: needs.config.outputs.python == 'true'
     name: Build wheels + publish to PyPI
     runs-on: ${{ matrix.os }}
     strategy:

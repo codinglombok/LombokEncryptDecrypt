@@ -187,4 +187,22 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- GitHub Packages (maven.pkg.github.com) mirror.
+         Publish: mvn -B deploy -Pgpr
+         Credentials injected by .github/workflows/release-github.yml (setup-java server-id: github).
+         Note: there is no `release` profile in this pom — publish_maven.yml's
+         `mvn deploy -P release` currently has no deployment target to activate. -->
+    <profile>
+      <id>gpr</id>
+      <distributionManagement>
+        <repository>
+          <id>github</id>
+          <name>GitHub Packages</name>
+          <url>https://maven.pkg.github.com/codinglombok/LombokEncryptDecrypt</url>
+        </repository>
+      </distributionManagement>
+    </profile>
+  </profiles>
 </project>

@@ -8,8 +8,22 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect .NET projects
+    runs-on: ubuntu-latest
+    outputs:
+      dotnet: ${{ steps.dotnet.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: dotnet
+        # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
+        # ditolak GitHub -> startup_failure)
+        if: ${{ hashFiles('*.csproj', 'ports/dotnet/**/*.csproj') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   publish-nuget:
-    if: ${{ hashFiles('ports/dotnet/**/*.csproj') != '' }}
+    needs: config
+    if: needs.config.outputs.dotnet == 'true'
     name: Publish to NuGet
     runs-on: ubuntu-latest
     steps:

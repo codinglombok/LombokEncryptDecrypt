@@ -8,8 +8,21 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect Java sources
+    runs-on: ubuntu-latest
+    outputs:
+      java: ${{ steps.java.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: java
+        # hashFiles hanya boleh di level STEP (job-level `if` = startup_failure)
+        if: ${{ hashFiles('pom.xml', 'ports/java/src/main/java/**/*.java') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   publish-maven:
-    if: ${{ hashFiles('pom.xml', 'src/main/java/**/*.java') != '' }}
+    needs: config
+    if: needs.config.outputs.java == 'true'
     name: Publish to Maven Central
     runs-on: ubuntu-latest
     steps:
@@ -24,6 +37,10 @@ jobs:
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: GPG_PASSPHRASE
+      # CATATAN SEMANTIK: pom.xml belum punya profil `release` maupun
+      # distributionManagement target Central — step ini akan gagal di deploy
+      # sampai konfigurasi Central (sonatype/central-publishing) ditambahkan.
+      # Mirror GPR yang berfungsi ada di release-github.yml (profil -Pgpr).
       - run: mvn -B deploy -P release
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}

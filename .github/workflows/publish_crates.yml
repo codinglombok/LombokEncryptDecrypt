@@ -8,13 +8,27 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect Rust sources
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.rust.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: rust
+        # hashFiles hanya boleh di level STEP (job-level `if` = startup_failure)
+        if: ${{ hashFiles('src/**/*.rs') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   publish-crates:
-    if: ${{ hashFiles('src/**/*.rs') != '' }}
+    needs: config
+    if: needs.config.outputs.rust == 'true'
     name: Publish to crates.io
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --features full
+      # fitur "full" tidak ada di Cargo.toml — test dengan fitur default
+      - run: cargo test
       - run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}

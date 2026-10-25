@@ -8,14 +8,25 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect Perl sources
+    runs-on: ubuntu-latest
+    outputs:
+      perl: ${{ steps.perl.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: perl
+        # hashFiles hanya boleh di level STEP (job-level `if` = startup_failure)
+        if: ${{ hashFiles('ports/perl/**') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   publish-cpan:
-    if: ${{ hashFiles('ports/perl/**') != '' }}
+    needs: config
+    if: needs.config.outputs.perl == 'true'
     name: Publish to CPAN via PAUSE
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with: { php-version: '8.3' }
       - uses: perl-actions/install-with-cpanm@stable
         with: { install: 'CPAN::Uploader' }
       - run: |
