@@ -10,8 +10,22 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect Go sources
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.go.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: go
+        # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
+        # ditolak GitHub -> startup_failure)
+        if: ${{ hashFiles('ports/go/**/*.go') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   test:
-    if: ${{ hashFiles('ports/go/**/*.go') != '' }}
+    needs: config
+    if: needs.config.outputs.go == 'true'
     name: Test — Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -31,7 +45,8 @@ jobs:
         working-directory: ports/go
 
   govulncheck:
-    if: ${{ hashFiles('ports/go/**/*.go') != '' }}
+    needs: config
+    if: needs.config.outputs.go == 'true'
     name: Go vulnerability check
     runs-on: ubuntu-latest
     steps:

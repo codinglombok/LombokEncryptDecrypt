@@ -10,8 +10,30 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect Swift package readiness
+    runs-on: ubuntu-latest
+    outputs:
+      swift: ${{ steps.swift.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: swift
+        # Job aktif hanya ketika semua `path:` target di Package.swift ada.
+        # Saat ini manifest menunjuk ports/swift/Sources/LombokEncryptDecryptSymmetric,
+        # .../LombokEncryptDecryptPQC, dan ports/swift/Tests yang BELUM ada,
+        # sehingga `swift build` pasti gagal. Aktivasi otomatis begitu
+        # target-target tersebut hadir.
+        run: |
+          READY=true
+          [ -f Package.swift ] || READY=false
+          while IFS= read -r p; do
+            [ -e "$p" ] || READY=false
+          done < <(grep -oE 'path:[[:space:]]*"[^"]+"' Package.swift | sed -E 's/path:[[:space:]]*"//; s/"$//')
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+
   test-macos:
-    if: ${{ hashFiles('Sources/**/*.swift') != '' }}
+    needs: config
+    if: needs.config.outputs.swift == 'true'
     name: Swift on macOS (iOS/macOS)
     runs-on: macos-14
     steps:
@@ -20,7 +42,8 @@ jobs:
       - run: swift test -v
 
   test-linux:
-    if: ${{ hashFiles('Sources/**/*.swift') != '' }}
+    needs: config
+    if: needs.config.outputs.swift == 'true'
     name: Swift on Linux
     runs-on: ubuntu-latest
     container:

@@ -10,8 +10,22 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    name: Detect Java sources
+    runs-on: ubuntu-latest
+    outputs:
+      java: ${{ steps.java.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: java
+        # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
+        # ditolak GitHub -> startup_failure). Sumber Java ada di ports/java/.
+        if: ${{ hashFiles('pom.xml', 'ports/java/src/main/java/**/*.java') != '' }}
+        run: echo "exists=true" >> "$GITHUB_OUTPUT"
+
   test:
-    if: ${{ hashFiles('pom.xml', 'src/main/java/**/*.java') != '' }}
+    needs: config
+    if: needs.config.outputs.java == 'true'
     name: Test — Java ${{ matrix.java }}
     runs-on: ubuntu-latest
     strategy:
