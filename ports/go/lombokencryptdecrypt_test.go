@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	led "github.com/codinglombok/lombokencryptdecrypt-go"
+	led "github.com/codinglombok/lombokencryptdecrypt-go/ports/go"
 )
 
 func fromHex(t *testing.T, s string) []byte {
@@ -52,8 +52,8 @@ func TestAesGcmNistVectors(t *testing.T) {
 	for i, v := range vectors {
 		t.Run(t.Name()+string(rune('0'+i)), func(t *testing.T) {
 			key := fromHex(t, v.Key)
-			iv  := fromHex(t, v.IV)
-			pt  := fromHex(t, v.Plaintext)
+			iv := fromHex(t, v.IV)
+			pt := fromHex(t, v.Plaintext)
 
 			var aad []byte
 			if v.AAD != "" {
@@ -142,7 +142,7 @@ func TestSha256(t *testing.T) {
 	}
 	for _, tc := range tests {
 		data := fromHex(t, tc.input)
-		got  := hex.EncodeToString(led.Sha256(data))
+		got := hex.EncodeToString(led.Sha256(data))
 		if got != tc.want {
 			t.Errorf("SHA256(%q): got %s want %s", tc.input, got, tc.want)
 		}
@@ -211,8 +211,8 @@ func TestCrossLanguageVectors(t *testing.T) {
 		for _, v := range vectors.AesGcm {
 			t.Run(v.ID, func(t *testing.T) {
 				key := fromHex(t, v.Key)
-				iv  := fromHex(t, v.IV)
-				pt  := fromHex(t, v.Plaintext)
+				iv := fromHex(t, v.IV)
+				pt := fromHex(t, v.Plaintext)
 				var aad []byte
 				if v.AAD != "" {
 					aad = fromHex(t, v.AAD)

@@ -244,4 +244,103 @@ class LombokEncryptDecryptTest {
                 .isEqualTo(v.get("output").asText());
         }
     }
+
+    // ── Coverage: jalur error + API yang belum tersentuh ─────────────────
+
+    @Test
+    void aesGcmEncryptRejectsInvalidIvLength() {
+        byte[] key = LombokEncryptDecrypt.generateAesKey(256);
+        byte[] badIv = new byte[16]; // GCM menuntut 12
+        assertThatThrownBy(() -> LombokEncryptDecrypt.aesGcmEncrypt("x".getBytes(), key, badIv, null))
+            .isInstanceOf(CryptoException.class)
+            .hasMessageContaining("[INVALID_IV_SIZE]");
+    }
+
+    @Test
+    void aesGcmEncryptRejectsInvalidKeyLength() {
+        byte[] iv = LombokEncryptDecrypt.generateGcmIv();
+        assertThatThrownBy(() -> LombokEncryptDecrypt.aesGcmEncrypt("x".getBytes(), new byte[15], iv, null))
+            .isInstanceOf(CryptoException.class)
+            .hasMessageContaining("[INVALID_KEY_SIZE]");
+    }
+
+    @Test
+    void aesGcmEncryptAndDecryptWithNullAndNonEmptyAad() {
+        byte[] key = LombokEncryptDecrypt.generateAesKey(256);
+        byte[] iv  = LombokEncryptDecrypt.generateGcmIv();
+        byte[] pt  = "aad branch coverage".getBytes();
+
+        var withAad = LombokEncryptDecrypt.aesGcmEncrypt(pt, key, iv, "header".getBytes());
+        var plain   = LombokEncryptDecrypt.aesGcmEncrypt(pt, key, iv, null);
+
+        assertThat(LombokEncryptDecrypt.aesGcmDecrypt(
+            withAad.ciphertext(), key, iv, withAad.tag(), "header".getBytes())).isEqualTo(pt);
+        assertThat(LombokEncryptDecrypt.aesGcmDecrypt(
+            plain.ciphertext(), key, iv, plain.tag(), null)).isEqualTo(pt);
+    }
+
+    @Test
+    void aesGcmDecryptDetectsTamperedTag() {
+        byte[] key = LombokEncryptDecrypt.generateAesKey(256);
+        byte[] iv  = LombokEncryptDecrypt.generateGcmIv();
+        var result = LombokEncryptDecrypt.aesGcmEncrypt("secret".getBytes(), key, iv, null);
+
+        byte[] tampered = result.tag().clone();
+        tampered[0] ^= 0x01;
+
+        assertThatThrownBy(() -> LombokEncryptDecrypt.aesGcmDecrypt(
+            result.ciphertext(), key, iv, tampered, null))
+            .isInstanceOf(CryptoException.class)
+            .hasMessageContaining("[AUTHENTICATION_FAILED]");
+    }
+
+    @Test
+    void generateGcmIvProducesFreshTwelveByteIv() {
+        byte[] a = LombokEncryptDecrypt.generateGcmIv();
+        byte[] b = LombokEncryptDecrypt.generateGcmIv();
+        assertThat(a).hasSize(12);
+        assertThat(b).isNotEqualTo(a); // probabilistik: 2^-96 collision
+    }
+
+    @Test
+    void hmacSha512MatchesRfc4231TestCase1() {
+        byte[] key = new byte[20];
+        java.util.Arrays.fill(key, (byte) 0x0b);
+        byte[] mac = LombokEncryptDecrypt.hmacSha512(key, "Hi There".getBytes());
+        assertThat(HEX.formatHex(mac))
+            .isEqualTo("87aa7cdea5ef619d4ff0b4241a1d6cb02379f4e2ce4ec2787ad0b30545e17c"
+                     + "dedaa833b7d6b8a702038b274eaea3f4e4be9d914eeb61f1702e696c203a126854");
+    }
+
+    @Test
+    void sha512MatchesFips180AbcVector() {
+        assertThat(HEX.formatHex(LombokEncryptDecrypt.sha512("abc".getBytes())))
+            .isEqualTo("ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
+                     + "2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f");
+    }
+
+    @Test
+    void sha3_256MatchesAbcVector() {
+        assertThat(HEX.formatHex(LombokEncryptDecrypt.sha3_256("abc".getBytes())))
+            .isEqualTo("3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532");
+    }
+
+    @Test
+    void timingSafeEqualComparesContentOnly() {
+        byte[] a = {1, 2, 3, 4};
+        byte[] b = {1, 2, 3, 4};
+        byte[] c = {1, 2, 3, 5};
+        assertThat(LombokEncryptDecrypt.timingSafeEqual(a, b)).isTrue();
+        assertThat(LombokEncryptDecrypt.timingSafeEqual(a, c)).isFalse();
+        assertThat(LombokEncryptDecrypt.timingSafeEqual(a, new byte[0])).isFalse();
+    }
+
+    @Test
+    void cryptoExceptionWrapsCauseAndExposesCode() {
+        Exception cause = new IllegalStateException("boom");
+        CryptoException ex = new CryptoException(CryptoException.INTERNAL, "wrapped", cause);
+        assertThat(ex.getCode()).isEqualTo("INTERNAL");
+        assertThat(ex.getCause()).isSameAs(cause);
+        assertThat(ex.getMessage()).startsWith("[INTERNAL]");
+    }
 }

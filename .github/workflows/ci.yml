@@ -27,7 +27,9 @@ jobs:
       - run: npx prettier --check 'src/**/*.ts' 'tests/**/*.ts'
 
   test:
-    name: Test — Node ${{ matrix.node }}
+    # OS di nama job — tanpa ini 6 leg matrix berbagi satu nama check dan
+    # kegagalan per-OS tidak bisa dibedakan di sidebar PR.
+    name: Test — Node ${{ matrix.node }} on ${{ matrix.os }}
     needs: lint
     runs-on: ${{ matrix.os }}
     strategy:
