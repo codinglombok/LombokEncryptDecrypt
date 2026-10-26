@@ -1,5 +1,5 @@
 plugins {
-    kotlin("multiplatform") version "2.0.0"
+    kotlin("multiplatform") version "2.4.10"
     kotlin("plugin.serialization") version "2.0.0"
     id("com.android.library") version "8.5.0" apply false
     id("org.jetbrains.dokka") version "1.9.20"
