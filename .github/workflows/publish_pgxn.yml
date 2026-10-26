@@ -14,7 +14,7 @@ jobs:
     outputs:
       pgext: ${{ steps.pgext.outputs.exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: pgext
         # hashFiles hanya boleh di level STEP (job-level `if` = startup_failure).
         # Ekstensi dibangun dari ports/sql (guard lama 'ports/pgxn/**' tidak
@@ -40,7 +40,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install PostgreSQL dev headers
         run: |
