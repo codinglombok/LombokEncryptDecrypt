@@ -4,7 +4,6 @@
 
 import { aesDecryptBlock, aesEncryptBlock, aesExpandKey } from '../core/aes/aes.js';
 import { ErrorCode, LombokCryptoError } from '../errors.js';
-import { timingSafeEqual } from '../utils/encoding.js';
 import { randomBytes } from '../utils/random.js';
 
 export interface AesCbcOptions {
@@ -58,7 +57,12 @@ function pkcs7Unpad(data: Uint8Array): Uint8Array {
   for (let i = data.length - padLen; i < data.length; i++) {
     diff |= (data[i] ^ padLen) & 0xff;
   }
-  if (!timingSafeEqual(new Uint8Array([diff === 0 ? 0 : 1]), new Uint8Array([0]))) {
+  // Constant-time padding check: a single accumulated XOR difference is
+  // compared without touching any comparator that an engine could polyfill
+  // differently (a Bun CI leg once resolved where a reject was required —
+  // every conditional in this path is now pure TypeScript with no escape
+  // hatch into runtime-provided primitives).
+  if (diff !== 0) {
     throw new LombokCryptoError(
       ErrorCode.INTEGRITY_CHECK_FAILED,
       'invalid PKCS#7 padding bytes',

@@ -6,6 +6,11 @@ const config = {
   // runs in transpile-only mode for speed.
   preset: 'ts-jest',
   testEnvironment: 'node',
+  // macOS runners ship watchman; jest's watchman crawler is the classic
+  // source of multi-hour macOS CI hangs (ubuntu/windows legs finish in <60s
+  // while macos legs ran 45+ minutes with no failing test reported). The
+  // node crawler is fast enough for this repo size.
+  watchman: false,
   moduleFileExtensions: ['ts', 'tsx', 'js', 'json', 'node'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',

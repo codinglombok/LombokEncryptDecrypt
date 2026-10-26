@@ -70,10 +70,12 @@ full = [
 ]
 
 [dependencies]
-# Lombok Ecosystem math primitives (non-critical path)
-lombokalgoritma = { version = "0.1.0", optional = true, features = ["math", "hash", "ntt"] }
+# Lombok Ecosystem math primitives (non-critical path).
+# crates.io: lombokalgoritma 0.2.0 (req lama "0.1.0" tidak memenuhi 0.2.x).
+lombokalgoritma = { version = "0.2", optional = true, features = ["math", "hash", "ntt"] }
 # LombokVector (used for encrypted vector embedding in LombokRAGFrameworks integration)
-lombokvector = { version = "0.1.0", optional = true }
+# crates.io: 0.1.0 terpublish 2026-10-25 — resolusi optional deps kini terbuka.
+lombokvector = { version = "0.1", optional = true }
 
 # NAPI-RS for Node.js bindings (optional)
 napi-rs = { version = "2.16", optional = true, features = ["napi4"] }
