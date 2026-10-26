@@ -16,7 +16,7 @@ jobs:
     outputs:
       ready: ${{ steps.crate.outputs.ready }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: crate
         # wasm-pack MENGOMPILASI crate Rust ke wasm32 — job baru berjalan
         # ketika crate siap: entry point ada (src/lib.rs ATAU override `path`
@@ -42,13 +42,13 @@ jobs:
     name: WASM build + browser test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: wasm32-unknown-unknown }
       - uses: Swatinem/rust-cache@v2
       - run: cargo install wasm-pack --locked
       - run: wasm-pack build --target web --out-dir dist/wasm --features wasm
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: '22', cache: npm }
       - run: npm ci
       # Belum ada test khusus WASM (path "wasm" tidak cocok dengan file test

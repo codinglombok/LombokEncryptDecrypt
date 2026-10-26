@@ -16,7 +16,7 @@ jobs:
     outputs:
       php: ${{ steps.php.outputs.exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: php
         # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
         # ditolak GitHub -> startup_failure)
@@ -34,7 +34,7 @@ jobs:
         php: ['8.2', '8.3', '8.4']
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php }}'

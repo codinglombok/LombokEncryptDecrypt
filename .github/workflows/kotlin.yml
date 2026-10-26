@@ -16,7 +16,7 @@ jobs:
     outputs:
       kotlin: ${{ steps.kotlin.outputs.ready }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: kotlin
         # Job aktif hanya ketika infrastruktur build Kotlin lengkap. Saat ini:
         #  - tidak ada gradlew (wrapper) maupun settings.gradle(.kts) di root;
@@ -35,10 +35,10 @@ jobs:
     name: Kotlin/JVM + Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           java-version: '17'
           distribution: temurin
-      - uses: gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew build test

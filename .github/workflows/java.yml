@@ -16,7 +16,7 @@ jobs:
     outputs:
       java: ${{ steps.java.outputs.exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: java
         # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
         # ditolak GitHub -> startup_failure). Sumber Java ada di ports/java/.
@@ -35,8 +35,8 @@ jobs:
       matrix:
         java: ['17', '21']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           java-version: '${{ matrix.java }}'
           distribution: temurin
