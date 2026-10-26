@@ -144,20 +144,38 @@ async function deriveNode(
   publicKey: Uint8Array,
 ): Promise<Uint8Array> {
   const { diffieHellman, createPrivateKey, createPublicKey } = await import('node:crypto');
-  const { bytesToBase64Url } = await import('../utils/encoding.js');
+  const { bytesToBase64Url, concatBytes } = await import('../utils/encoding.js');
   if (curve.startsWith('X')) {
-    // Raw OKP keys: import through JWK (RFC 8410). node:crypto accepts JWK
-    // for X25519/X448, which keeps generateKeyPair()/computeSharedSecret()
-    // consistent on raw byte keys (no DER wrapper mismatch).
-    // RFC 8037 OKP JWKs carry the public part (x) alongside d.
+    // Raw OKP keys (RFC 8410). Node >= 24.22 validates OKP JWK consistency on
+    // import: a private JWK whose x is not the public of d now throws
+    // "Invalid JWK OKP key" — yet ECDH legitimately combines our scalar with
+    // a foreign public. Import the private scalar through the fixed PKCS#8
+    // wrapper instead (same pattern as src/core/ecc/ecdh.ts): the DER carries
+    // no public part, so node derives it from the scalar itself. Byte layout
+    // is RFC-mandated: ver || OID 1.3.101.110/111 || OCTET STRING{scalar}.
+    const expectedPrivLen = curve === 'X25519' ? 32 : 56;
+    if (privateKey.length !== expectedPrivLen) {
+      throw new LombokCryptoError(
+        ErrorCode.INVALID_KEY_SIZE,
+        `${curve} private key must be ${expectedPrivLen} bytes, got ${privateKey.length}`,
+        curve,
+      );
+    }
+    const pkcs8Prefix = new Uint8Array(
+      curve === 'X25519'
+        ? [
+            0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x04, 0x22,
+            0x04, 0x20,
+          ]
+        : [
+            0x30, 0x46, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6f, 0x04, 0x3a,
+            0x04, 0x38,
+          ],
+    );
     const privK = createPrivateKey({
-      key: {
-        kty: 'OKP',
-        crv: curve,
-        x: bytesToBase64Url(publicKey),
-        d: bytesToBase64Url(privateKey),
-      },
-      format: 'jwk',
+      key: Buffer.from(concatBytes(pkcs8Prefix, privateKey)),
+      format: 'der',
+      type: 'pkcs8',
     });
     const pubK = createPublicKey({
       key: { kty: 'OKP', crv: curve, x: bytesToBase64Url(publicKey) },
