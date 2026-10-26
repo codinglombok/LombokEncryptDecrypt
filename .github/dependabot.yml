@@ -65,9 +65,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
 
-  # Python port
+  # Python port (pyproject.toml lives at the repo root — maturin/pyo3 build
+  # frontend for the src-rust cdylib)
   - package-ecosystem: pip
-    directory: /ports/python
+    directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -86,8 +87,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
 
-  # Swift port
-  - package-ecosystem: swiftpm
+  # Swift port (Package.swift at the repo root).
+  # NOTE: the valid ecosystem name is 'swift' — 'swiftpm' made GitHub reject
+  # the whole file with 'contained invalid details'.
+  - package-ecosystem: swift
     directory: /
     schedule:
       interval: weekly
