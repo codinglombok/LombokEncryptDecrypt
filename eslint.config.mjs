@@ -55,7 +55,19 @@ export default [
       'require-await': 'off',
       '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/return-await': ['error', 'in-try-catch'],
-      '@typescript-eslint/no-floating-promises': 'error',
+      // node:test's test()/describe()/it() return a Promise the runner
+      // awaits internally — without this opt-out every node:test call site
+      // trips no-floating-promises (jest globals are typed void, so the
+      // jest suites never hit this). Verbatim example from the
+      // typescript-eslint docs for allowForKnownSafeCalls.
+      '@typescript-eslint/no-floating-promises': [
+        'error',
+        {
+          allowForKnownSafeCalls: [
+            { from: 'package', package: 'node:test', name: ['describe', 'it', 'test'] },
+          ],
+        },
+      ],
 
       // Enforce explicit types in crypto APIs
       '@typescript-eslint/explicit-function-return-type': [
