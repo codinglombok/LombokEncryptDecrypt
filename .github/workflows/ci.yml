@@ -32,6 +32,9 @@ jobs:
     name: Test — Node ${{ matrix.node }} on ${{ matrix.os }}
     needs: lint
     runs-on: ${{ matrix.os }}
+    # Bun/glibc macOS pernah menggantung 45+ menit tanpa satu test pun
+    # gagal tercatat — batasi durasi job dan upload bukti saat gagal.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -44,12 +47,38 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm test -- --coverage
+      - name: Test (jest + coverage, JSON report untuk diagnosa)
+        run: |
+          set -o pipefail
+          npm test -- --coverage --ci --json --outputFile=jest-results.json 2>&1 | tee jest-output.log
+      - name: Upload test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-${{ matrix.node }}-${{ matrix.os }}
+          path: |
+            jest-results.json
+            jest-output.log
+          if-no-files-found: ignore
       - uses: codecov/codecov-action@v4
         if: matrix.node == '22' && matrix.os == 'ubuntu-latest'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: typescript
+
+  # Ecosystem integrations — the REAL published lombokvector/lomboksimhash
+  # packages under a real ESM loader (jest CJS cannot load ESM-only deps).
+  ecosystem:
+    name: Ecosystem integrations (node ESM)
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - run: npm ci
+      - run: npx tsx --test tests/ecosystem/*.test.ts
 
   vectors:
     name: NIST Test Vectors
@@ -73,7 +102,10 @@ jobs:
         with: { deno-version: v2.x }
       - name: Deno test (jest-style BDD via preload shim)
         run: |
-          deno test --allow-read --allow-env tests/ \
+          # Direktori eksplisit — tests/ecosystem/ memakai node:test + paket
+          # peer asli (node_modules tidak dipasang di job Deno).
+          deno test --allow-read --allow-env \
+            tests/unit/ tests/integration/ tests/vectors/ \
             --import-map=deno_import_map.json \
             --unstable-sloppy-imports \
             --no-check \
@@ -82,9 +114,23 @@ jobs:
   bun:
     name: Bun compatibility
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      # Pin: bun "latest" pernah mengubah perilaku antar minor. 1.4.4
+      # terverifikasi hijau (348 pass) — naikkan versi secara sadar, bukan
+      # karena runner berubah di balik layar.
       - uses: oven-sh/setup-bun@v1
-        with: { bun-version: latest }
+        with: { bun-version: '1.4.4' }
       - run: bun install
-      - run: bun test
+      - name: Bun test (output untuk diagnosa)
+        run: |
+          set -o pipefail
+          bun test 2>&1 | tee bun-output.log
+      - name: Upload bun diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bun-diagnostics
+          path: bun-output.log
+          if-no-files-found: ignore

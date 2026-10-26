@@ -53,6 +53,33 @@ npm run typecheck && npm test && npm run build:ts
 - [API Reference](docs/API.md), [Architecture](docs/architecture_repo.md), [Masterplan](docs/masterplan_repo.md), [Spec](docs/SPEC.md) — *design documents; describe planned scope, may exceed what is implemented*
 - [Security Policy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
+## Ecosystem integrations (optional)
+
+LED ships optional integrations with sibling Lombok packages — both are
+`optionalDependencies` and every function fails closed (`UNSUPPORTED_ALGORITHM`)
+when the package is absent:
+
+```bash
+npm i lombokvector lomboksimhash
+```
+
+```ts
+import {
+  encryptVector, decryptVector, rankEncryptedVectors, // encrypted embeddings
+  fingerprintPlaintext, hammingDistance,              // SimHash-64 fingerprints
+} from 'lombokencryptdecrypt';
+
+// RAG embeddings at rest are ciphertext; ranking happens after local decryption
+const record = await encryptVector([0.8, 0.6, 0.1], key, { aad: docId });
+const ranked = await rankEncryptedVectors(query, [record, /* ... */], key, { aad: docId });
+
+// Plaintext SimHash — ⚠ similarity metadata: treat it as sensitive as the plaintext
+const fp = await fingerprintPlaintext('the fox'); // '54b080184441c10c' (canonical cross-port vector)
+```
+
+Verified against the published artifacts by `tests/ecosystem/`
+(`npx tsx --test tests/ecosystem/*.test.ts`, job "Ecosystem integrations").
+
 ## Part of Lombok Ecosystem
 
 Tier 2 — Security & Compliance in [@codinglombok](https://github.com/codinglombok).

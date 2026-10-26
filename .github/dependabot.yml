@@ -1,0 +1,94 @@
+# Dependabot — seluruh ekosistem di monorepo ini.
+# Weekly + grouped minor/patch agar PR tidak membanjiri tracker
+# (sebelumnya hanya maven yang terdaftar; sisanya pernah menghasilkan
+# PR/alerts yang menumpuk tanpa perawatan).
+
+version: 2
+updates:
+  # CI/CD actions (checkout, setup-node, upload-artifact, ...)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - '*'
+    open-pull-requests-limit: 5
+
+  # TypeScript core (root package.json)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      ts-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 5
+
+  # Java port (root pom.xml)
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      maven:
+        patterns:
+          - '*'
+    open-pull-requests-limit: 5
+
+  # Rust core (root Cargo.toml) — termasuk optional deps lombokalgoritma,
+  # lombokvector. Cargo.lock tidak di-commit: dep updates menyentuh manifest.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      rust:
+        patterns:
+          - '*'
+    open-pull-requests-limit: 5
+
+  # Go port
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # PHP port
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Python port
+  - package-ecosystem: pip
+    directory: /ports/python
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Kotlin/JVM port
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # .NET port
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Swift port
+  - package-ecosystem: swiftpm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

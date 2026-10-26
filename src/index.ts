@@ -88,6 +88,28 @@ export {
 export { AuditLogger, type AuditEntry, type AuditInput } from './audit/audit.js';
 export { legacy } from './legacy/legacy.js';
 
+// Optional ecosystem integrations (LombokVector / LombokSimHash). The peer
+// packages live in optionalDependencies; every function dynamic-imports its
+// package and fails closed with UNSUPPORTED_ALGORITHM when absent.
+export {
+  decryptVector,
+  encryptVector,
+  rankEncryptedVectors,
+  type DecryptVectorOptions,
+  type EncryptedVectorRecord,
+  type EncryptVectorOptions,
+  type LombokVectorLoader,
+  type RankOptions,
+  type VectorInput,
+  type VectorRanking,
+} from './integrations/vector.js';
+export {
+  fingerprintPlaintext,
+  hammingDistance,
+  type SimHashLoader,
+  type SimHashOptions,
+} from './integrations/simhash.js';
+
 // Utilities
 export {
   bytesToHex,

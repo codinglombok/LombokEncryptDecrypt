@@ -1,7 +1,7 @@
 {
   "name": "lombokencryptdecrypt",
   "version": "0.1.0",
-  "description": "Encrypt/decrypt toolkit for TypeScript — pre-release. Pure-TS, zero runtime dependencies.",
+  "description": "Encrypt/decrypt toolkit for TypeScript \u2014 pre-release. Pure-TS, zero runtime dependencies.",
   "type": "module",
   "license": "Apache-2.0",
   "author": "codinglombok <codinglombok@gmail.com>",
@@ -111,5 +111,9 @@
     "tsx": "^4.15.7",
     "typedoc": "^0.26.11",
     "typescript": "~5.6.3"
+  },
+  "optionalDependencies": {
+    "lombokvector": "^0.1.0",
+    "lomboksimhash": "^0.1.0"
   }
 }
