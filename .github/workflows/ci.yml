@@ -34,7 +34,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     # Bun/glibc macOS pernah menggantung 45+ menit tanpa satu test pun
     # gagal tercatat — batasi durasi job dan upload bukti saat gagal.
-    timeout-minutes: 30
+    # 15m cukup: runInBand di bawah selesai ~2-3 menit di runner paling lambat,
+    # dan kalau hang tetap terjadi kita dapat artefak diagnosa 15 menit
+    # lebih cepat (bukan 30).
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -48,11 +51,22 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Test (jest + coverage, JSON report untuk diagnosa)
+        # shell: bash WAJIB — default shell runner windows adalah pwsh, dan
+        # `set -o pipefail` bukan perintah pwsh: leg windows gagal exit-1 satu
+        # detik sebelum jest sempat jalan (run 5910c9f, step 33s total).
+        # --runInBand: pool worker jest (fork child_process) adalah satu-satunya
+        # lapisan yang TIDAK dipakai bun/deno — keduanya hijau di macOS —
+        # sementara jest hang 30m di macOS walau watchman:false. Tanpa worker,
+        # kelas deadlock itu hilang; 356 test in-band masih <3 menit di linux.
+        shell: bash
         run: |
           set -o pipefail
-          npm test -- --coverage --ci --json --outputFile=jest-results.json 2>&1 | tee jest-output.log
+          npm test -- --coverage --ci --runInBand --json --outputFile=jest-results.json 2>&1 | tee jest-output.log
       - name: Upload test diagnostics
-        if: failure()
+        # cancelled() juga — job macos yang di-kill timeout-minutes berstatus
+        # 'cancelled', bukan 'failure'; dengan if: failure() saja artefak
+        # diagnosa justru ter-skip justru pada kasus yang paling butuh bukti.
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: jest-${{ matrix.node }}-${{ matrix.os }}
