@@ -14,7 +14,7 @@ jobs:
     outputs:
       dotnet: ${{ steps.dotnet.outputs.exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: dotnet
         # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
         # ditolak GitHub -> startup_failure)
@@ -27,8 +27,8 @@ jobs:
     name: Publish to NuGet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with: { dotnet-version: '8.0' }
       - run: dotnet build --configuration Release
       - run: dotnet pack --configuration Release --output ./artifacts
