@@ -16,7 +16,7 @@ jobs:
     outputs:
       dotnet: ${{ steps.dotnet.outputs.exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: dotnet
         # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
         # ditolak GitHub -> startup_failure)
@@ -33,8 +33,8 @@ jobs:
         dotnet: ['8.0', '9.0']
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with: { dotnet-version: '${{ matrix.dotnet }}' }
       - run: dotnet build LombokEncryptDecrypt.csproj --configuration Release
       # Catatan: belum ada proyek test C# (ports/dotnet/ tidak ada). Tambahkan
