@@ -14,7 +14,7 @@ jobs:
     outputs:
       perl: ${{ steps.perl.outputs.exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: perl
         # hashFiles hanya boleh di level STEP (job-level `if` = startup_failure)
         if: ${{ hashFiles('ports/perl/**') != '' }}
@@ -26,7 +26,7 @@ jobs:
     name: Publish to CPAN via PAUSE
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: perl-actions/install-with-cpanm@stable
         with: { install: 'CPAN::Uploader' }
       - run: |
