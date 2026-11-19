@@ -14,7 +14,7 @@ jobs:
     outputs:
       rust: ${{ steps.rust.outputs.exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: rust
         # hashFiles hanya boleh di level STEP (job-level `if` = startup_failure)
         if: ${{ hashFiles('src/**/*.rs') != '' }}
@@ -26,7 +26,7 @@ jobs:
     name: Publish to crates.io
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       # fitur "full" tidak ada di Cargo.toml — test dengan fitur default

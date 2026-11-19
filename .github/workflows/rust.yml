@@ -22,7 +22,7 @@ jobs:
       audit_ready: ${{ steps.crate.outputs.audit_ready }}
       ready: ${{ steps.crate.outputs.ready }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: manifest
         # hashFiles hanya boleh di level STEP (job-level `if` membuat workflow
         # ditolak GitHub -> startup_failure)
@@ -65,7 +65,7 @@ jobs:
             toolchain: stable
             coverage: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
@@ -93,7 +93,7 @@ jobs:
         if: matrix.coverage
         run: cargo llvm-cov --manifest-path Cargo.toml --features full --lcov --output-path lcov.info
 
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v7
         if: matrix.coverage
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -106,7 +106,7 @@ jobs:
     name: WASM build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -127,7 +127,7 @@ jobs:
           - riscv64gc-unknown-linux-gnu
           - thumbv7em-none-eabihf   # ARM Cortex-M (embedded no_std)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: '${{ matrix.target }}' }
       - uses: Swatinem/rust-cache@v2
@@ -144,7 +144,7 @@ jobs:
     name: Security Audit (cargo)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       # Cargo.lock tidak di-commit (library crate) — dibuat on-the-fly hanya
       # untuk resolusi versi; cargo-audit tidak mengompilasi kode.
@@ -160,13 +160,13 @@ jobs:
     name: Benchmark (delta check)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo install cargo-criterion --locked
       - run: cargo criterion --manifest-path Cargo.toml 2>&1 | tee bench_output.txt
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
