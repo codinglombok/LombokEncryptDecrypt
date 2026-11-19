@@ -16,7 +16,7 @@ jobs:
     outputs:
       swift: ${{ steps.swift.outputs.ready }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: swift
         # Job aktif hanya ketika semua `path:` target di Package.swift ada.
         # Saat ini manifest menunjuk ports/swift/Sources/LombokEncryptDecryptSymmetric,
@@ -37,7 +37,7 @@ jobs:
     name: Swift on macOS (iOS/macOS)
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: swift build
       - run: swift test -v
 
@@ -49,6 +49,6 @@ jobs:
     container:
       image: swift:5.10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: swift build
       - run: swift test -v
